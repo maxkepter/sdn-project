@@ -1,0 +1,14 @@
+{
+  "name": "sdn-project-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix ui",
+    "server": "npm run dev --prefix server",
+    "ui": "npm start --prefix ui",
+    "dev": "concurrently \"npm run server\" \"npm run ui\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
