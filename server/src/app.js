@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -8,8 +9,8 @@ const errorHandler = require("./modules/auth/middleware/errorHandler");
 
 const app = express();
 
-// Security headers
-app.use(helmet());
+// Security headers (relax for dev)
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // Cross-origin resource sharing
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
@@ -20,6 +21,9 @@ app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 // API routes
 app.use("/api/v1", routes);

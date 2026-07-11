@@ -5,8 +5,8 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { BiLoaderCircle } from "react-icons/bi";
 
 export default function MainHeader() {
-  const [items, setItems] = useState([]);
-  const [isSearching, setIsSearching] = useState(null);
+  const [items] = useState([]);
+  const [isSearching] = useState(null);
 
   const handleSearchName = debounce(async (event) => {
     // if (event.target.value === "") {
@@ -36,10 +36,16 @@ export default function MainHeader() {
     <div id="MainHeader" className="border-b">
       <nav className="flex items-center justify-between w-full mx-auto max-w-[1200px]">
         <div className="flex items-center w-full bg-white">
-          <div className="flex lg:justify-start justify-between gap-10 max-w-[1150px] w-full px-3 py-5 mx-auto">
-            <Link to="/">
-              <img width="120" src="/images/logo.svg" alt="" />
-            </Link>
+            <div className="flex lg:justify-start justify-between gap-10 max-w-[1150px] w-full px-3 py-5 mx-auto">
+              <Link to="/">
+                <img width="120" src="/images/logo.svg" alt="" />
+              </Link>
+              <Link
+                to="/seller"
+                className="flex items-center text-sm text-blue-600 hover:underline font-medium"
+              >
+                Seller Hub
+              </Link>
 
             <div className="w-full">
               <div className="relative">

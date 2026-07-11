@@ -10,6 +10,8 @@ import PrivateRoute from "./components/PrivateRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/HomePage";
+import SellerDashboard from "./pages/seller/SellerDashboard";
+import ProductForm from "./pages/seller/ProductForm";
 
 function App() {
   return (
@@ -26,8 +28,31 @@ function App() {
               </PrivateRoute>
             }
           />
-          {/* Redirect any unknown path to login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/seller"
+            element={
+              <PrivateRoute>
+                <SellerDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/seller/product/new"
+            element={
+              <PrivateRoute>
+                <ProductForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/seller/product/edit/:id"
+            element={
+              <PrivateRoute>
+                <ProductForm />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
