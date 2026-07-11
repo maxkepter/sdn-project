@@ -1,10 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const environment = require('./config/environment');
-const routes = require('./routes');
-const errorHandler = require('./middleware/errorHandler');
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const environment = require("./config/environment");
+const routes = require("./modules/auth/routes");
+const errorHandler = require("./modules/auth/middleware/errorHandler");
 
 const app = express();
 
@@ -15,18 +15,18 @@ app.use(helmet());
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
 
 // HTTP request logger
-app.use(environment.env === 'development' ? morgan('dev') : morgan('combined'));
+app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
 
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API routes
-app.use('/api/v1', routes);
+app.use("/api/v1", routes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date() });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date() });
 });
 
 // 404 handler
