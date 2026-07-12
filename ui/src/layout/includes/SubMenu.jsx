@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function SubMenu() {
   const menuItems = [
     { id: 1, name: "Home" },
@@ -10,7 +12,7 @@ export default function SubMenu() {
     { id: 8, name: "Health & Beauty" },
     { id: 9, name: "Industrial Equipment" },
     { id: 10, name: "Home & Garden" },
-    { id: 11, name: "Sell" },
+    { id: 11, name: "Sell", path: "/sell" },
   ];
 
   return (
@@ -22,7 +24,11 @@ export default function SubMenu() {
         >
           {menuItems.map((item) => (
             <li key={item.id} className="px-3 hover:underline cursor-pointer">
-              {item.name}
+              {item.path ? (
+                <Link to={item.path} className="text-[#333333] no-underline">{item.name}</Link>
+              ) : (
+                item.name
+              )}
             </li>
           ))}
         </ul>

@@ -13,6 +13,8 @@ const ProductSchema = new Schema(
     auctionEndTime: { type: Date },
     isHidden: { type: Boolean, default: false },
     sku: { type: String, default: "" },
+    condition: { type: String, default: "" },
+    itemSpecifics: { type: Map, of: String, default: {} },
   },
   { timestamps: true }
 );

@@ -28,6 +28,10 @@ app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 // API routes
 app.use("/api/v1", routes);
 
+// Public listing creation (no auth required)
+const listingsRoutes = require("./modules/listings/routes/listingsRoutes");
+app.use("/api/v1/listings", listingsRoutes);
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date() });
