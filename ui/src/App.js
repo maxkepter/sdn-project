@@ -10,7 +10,16 @@ import PrivateRoute from "./components/PrivateRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/HomePage";
-import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerHub from "./pages/seller/SellerHub";
+import SellerOverview from "./pages/seller/SellerOverview";
+import SellerOrders from "./pages/seller/SellerOrders";
+import SellerListings from "./pages/seller/SellerListings";
+import SellerMarketing from "./pages/seller/SellerMarketing";
+import SellerStore from "./pages/seller/SellerStore";
+import SellerPerformance from "./pages/seller/SellerPerformance";
+import SellerPayments from "./pages/seller/SellerPayments";
+import SellerResearch from "./pages/seller/SellerResearch";
+import SellerReports from "./pages/seller/SellerReports";
 import ProductForm from "./pages/seller/ProductForm";
 import ListingPage from "./pages/ListingPage";
 import SellPage from "./pages/SellPage";
@@ -36,10 +45,20 @@ function App() {
             path="/seller"
             element={
               <PrivateRoute>
-                <SellerDashboard />
+                <SellerHub />
               </PrivateRoute>
             }
-          />
+          >
+            <Route index element={<SellerOverview />} />
+            <Route path="orders" element={<SellerOrders />} />
+            <Route path="listings" element={<SellerListings />} />
+            <Route path="marketing" element={<SellerMarketing />} />
+            <Route path="store" element={<SellerStore />} />
+            <Route path="performance" element={<SellerPerformance />} />
+            <Route path="payments" element={<SellerPayments />} />
+            <Route path="research" element={<SellerResearch />} />
+            <Route path="reports" element={<SellerReports />} />
+          </Route>
           <Route
             path="/seller/product/new"
             element={

@@ -83,6 +83,9 @@ export default function TopMenu() {
           id="TopMenuRight"
           className="flex items-center text-[11px] text-[#333333] px-2 h-8"
         >
+          <li className="px-3 hover:underline cursor-pointer">
+            <Link to="/seller" className="text-blue-600 font-semibold">Sell</Link>
+          </li>
           <li
             onClick={() => navigate("/address")}
             className="flex items-center gap-2 px-3 hover:underline cursor-pointer"
