@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
-const { User, Category, Product, Inventory } = require("./models");
+const { User, Category, Product, Inventory, Address, Order, OrderItem } = require("./models");
 
 const DATABASE_URL = process.env.DATABASE_URL || "mongodb://localhost:27017/sdn_db";
 
@@ -120,6 +120,72 @@ async function seed() {
     });
 
     console.log(`  Created: ${p.title} ($${p.price})`);
+  }
+
+  let buyer = await User.findOne({ email: "buyer@test.com" });
+  if (!buyer) {
+    buyer = await User.create({
+      username: "buyer",
+      email: "buyer@test.com",
+      password: "$2a$10$dummyhashedpassword",
+      role: "buyer",
+    });
+    console.log("Buyer user created");
+  }
+
+  let address = await Address.findOne({ userId: buyer._id });
+  if (!address) {
+    address = await Address.create({
+      userId: buyer._id,
+      fullName: "Jane Doe",
+      phone: "+1 555-0199",
+      street: "123 Main Street",
+      city: "San Jose",
+      state: "CA",
+      country: "United States",
+      isDefault: true,
+    });
+    console.log("Buyer address created");
+  }
+
+  await Order.deleteMany({});
+  await OrderItem.deleteMany({});
+
+  const seededProducts = await Product.find({ sellerId: seller._id }).sort({ createdAt: 1 }).limit(5).lean();
+
+  if (seededProducts.length >= 3) {
+    const order1 = await Order.create({
+      buyerId: buyer._id,
+      addressId: address._id,
+      totalPrice: seededProducts[0].price + seededProducts[1].price * 2,
+      status: "paid",
+      orderDate: new Date(Date.now() - 2 * 24 * 3600 * 1000),
+    });
+    await OrderItem.create({ orderId: order1._id, productId: seededProducts[0]._id, quantity: 1, unitPrice: seededProducts[0].price });
+    await OrderItem.create({ orderId: order1._id, productId: seededProducts[1]._id, quantity: 2, unitPrice: seededProducts[1].price });
+
+    const order2 = await Order.create({
+      buyerId: buyer._id,
+      addressId: address._id,
+      totalPrice: seededProducts[2].price,
+      status: "shipped",
+      orderDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+    });
+    await OrderItem.create({ orderId: order2._id, productId: seededProducts[2]._id, quantity: 1, unitPrice: seededProducts[2].price });
+
+    if (seededProducts.length >= 5) {
+      const order3 = await Order.create({
+        buyerId: buyer._id,
+        addressId: address._id,
+        totalPrice: seededProducts[3].price + seededProducts[4].price,
+        status: "delivered",
+        orderDate: new Date(Date.now() - 10 * 24 * 3600 * 1000),
+      });
+      await OrderItem.create({ orderId: order3._id, productId: seededProducts[3]._id, quantity: 1, unitPrice: seededProducts[3].price });
+      await OrderItem.create({ orderId: order3._id, productId: seededProducts[4]._id, quantity: 1, unitPrice: seededProducts[4].price });
+    }
+
+    console.log("Seeded 3 test orders successfully");
   }
 
   console.log(`\nSeeded ${productsData.length} products successfully`);
