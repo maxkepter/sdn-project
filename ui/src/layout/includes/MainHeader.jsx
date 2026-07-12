@@ -40,12 +40,6 @@ export default function MainHeader() {
               <Link to="/">
                 <img width="120" src="/images/logo.svg" alt="" />
               </Link>
-              <Link
-                to="/seller"
-                className="flex items-center text-sm text-blue-600 hover:underline font-medium"
-              >
-                Seller Hub
-              </Link>
 
             <div className="w-full">
               <div className="relative">

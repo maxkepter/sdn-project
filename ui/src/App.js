@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/HomePage";
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import ProductForm from "./pages/seller/ProductForm";
+import ListingPage from "./pages/ListingPage";
+import SellPage from "./pages/SellPage";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/listng" element={<ListingPage />} />
+          <Route path="/sell" element={<SellPage />} />
           <Route
             path="/dashboard"
             element={
