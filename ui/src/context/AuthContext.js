@@ -42,7 +42,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const value = { user, loading, login, bypassLogin, logout };
+  const register = async (firstName, lastName, email, password, accountType) => {
+    const res = await apiClient.post('/auth/register', { firstName, lastName, email, password, accountType });
+    localStorage.setItem('token', res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
+  const value = { user, loading, login, bypassLogin, logout, register };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
