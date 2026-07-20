@@ -25,7 +25,7 @@ export default function TopMenu() {
 
     return (
       <Link
-        to="/auth"
+        to="/login"
         className="flex items-center gap-2 hover:underline cursor-pointer"
       >
         <div>Login</div>
