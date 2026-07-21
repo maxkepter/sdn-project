@@ -22,9 +22,14 @@ import SellerPerformance from "./pages/seller/SellerPerformance";
 import SellerPayments from "./pages/seller/SellerPayments";
 import SellerResearch from "./pages/seller/SellerResearch";
 import SellerReports from "./pages/seller/SellerReports";
+import SellerReviews from "./pages/seller/SellerReviews";
+import SellerFeedback from "./pages/seller/SellerFeedback";
+import AutomateFeedback from "./pages/seller/AutomateFeedback";
+import ShippedAwaitingFeedback from "./pages/seller/ShippedAwaitingFeedback";
 import ProductForm from "./pages/seller/ProductForm";
 import ListingPage from "./pages/ListingPage";
 import SellPage from "./pages/SellPage";
+import ProductDetail from "./pages/ProductDetail";
 
 function App() {
   return (
@@ -37,6 +42,7 @@ function App() {
           <Route path="/become-seller" element={<BecomeSeller />} />
           <Route path="/listng" element={<ListingPage />} />
           <Route path="/sell" element={<SellPage />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
           <Route
             path="/dashboard"
             element={
@@ -59,6 +65,8 @@ function App() {
             <Route path="marketing" element={<SellerMarketing />} />
             <Route path="store" element={<SellerStore />} />
             <Route path="performance" element={<SellerPerformance />} />
+            <Route path="feedback" element={<SellerFeedback />} />
+            <Route path="reviews" element={<SellerReviews />} />
             <Route path="payments" element={<SellerPayments />} />
             <Route path="research" element={<SellerResearch />} />
             <Route path="reports" element={<SellerReports />} />
@@ -76,6 +84,22 @@ function App() {
             element={
               <PrivateRoute>
                 <ProductForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/automate-feedback"
+            element={
+              <PrivateRoute>
+                <AutomateFeedback />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/seller/orders/shipped-awaiting-feedback"
+            element={
+              <PrivateRoute>
+                <ShippedAwaitingFeedback />
               </PrivateRoute>
             }
           />

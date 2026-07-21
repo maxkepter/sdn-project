@@ -4,7 +4,6 @@ const environment = require("../../../config/environment");
 
 exports.bypassLogin = async (req, res, next) => {
   try {
-    // ponytail: prefer the seeded seller so bypass matches seeded products + orders.
     let user = await User.findOne({ email: "seller@test.com", role: "seller" });
     if (!user) {
       user = await User.findOne({ role: "seller" });
@@ -18,10 +17,19 @@ exports.bypassLogin = async (req, res, next) => {
         role: "seller",
       });
     }
-    const token = jwt.sign({ id: user._id, role: user.role }, environment.jwtSecret, { expiresIn: "7d" });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      environment.jwtSecret,
+      { expiresIn: "7d" },
+    );
     res.json({
       token,
-      user: { id: user._id, username: user.username, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
       message: "Bypass auth: logged in as seller",
     });
   } catch (err) {

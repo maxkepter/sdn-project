@@ -9,6 +9,8 @@ const tabs = [
   { label: "Marketing", path: "/seller/marketing" },
   { label: "Store", path: "/seller/store" },
   { label: "Performance", path: "/seller/performance" },
+  { label: "Feedback", path: "/seller/feedback" },
+  { label: "Reviews", path: "/seller/reviews" },
   { label: "Payments", path: "/seller/payments" },
   { label: "Research", path: "/seller/research" },
   { label: "Reports", path: "/seller/reports" },
