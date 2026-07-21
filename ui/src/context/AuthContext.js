@@ -49,7 +49,14 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const value = { user, loading, login, bypassLogin, logout, register };
+  const upgradeToSeller = async () => {
+    const res = await apiClient.post('/auth/upgrade');
+    localStorage.setItem('token', res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
+  const value = { user, loading, login, bypassLogin, logout, register, upgradeToSeller };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
