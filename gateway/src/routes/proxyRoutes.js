@@ -27,7 +27,7 @@ router.use(
     target: environment.backends[0],
     changeOrigin: true,
     pathRewrite: { "^/uploads": "/uploads" },
-  })
+  }),
 );
 
 module.exports = router;
