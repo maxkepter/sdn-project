@@ -5,8 +5,12 @@
   "scripts": {
     "install:all": "npm install && npm install --prefix server && npm install --prefix ui",
     "server": "npm run dev --prefix server",
+    "server:port": "npm run dev:port --prefix server --",
+    "server:start:port": "npm run start:port --prefix server --",
     "ui": "npm start --prefix ui",
-    "dev": "concurrently \"npm run server\" \"npm run ui\""
+    "dev": "concurrently \"npm run server\" \"npm run ui\"",
+    "seed": "node server/src/seed.js",
+    "seed:drop": "node server/src/seed.js --drop"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

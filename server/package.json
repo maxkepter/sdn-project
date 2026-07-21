@@ -5,7 +5,9 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:port": "node -e \"process.env.PORT=process.argv[1]||process.env.PORT; require('./src/server')\"",
     "dev": "nodemon src/server.js",
+    "dev:port": "nodemon -e js -x \"node -e \\\"process.env.PORT=process.argv[1]||process.env.PORT; require('./src/server')\\\"\"",
     "seed": "node src/seed.js"
   },
   "keywords": [],

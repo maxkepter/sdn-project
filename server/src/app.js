@@ -27,7 +27,7 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
 
 // HTTP request logger
-app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
+// app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
 app.use(httpLogger);
 
 // Body parsers
