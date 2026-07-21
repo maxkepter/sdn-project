@@ -61,6 +61,15 @@ const descriptions = [
   "Condition shows normal use. No rips, stains, or damage. See photos for details.",
 ];
 
+function pad(n, len = 6) { return String(n).padStart(len, "0"); }
+
+async function generateOrderNumber() {
+  const today = new Date();
+  const ymd = `${today.getFullYear()}${pad(today.getMonth() + 1)}${pad(today.getDate(), 2)}`;
+  const count = await Order.countDocuments({ orderNumber: new RegExp(`^ORD-${ymd}-`) });
+  return `ORD-${ymd}-${pad(count + 1)}`;
+}
+
 async function seed() {
   await mongoose.connect(DATABASE_URL);
   console.log("Connected to MongoDB, seeding...");
@@ -98,9 +107,7 @@ async function seed() {
     }
 
     const imgIdx = String(p.imgIdx).padStart(2, "0");
-    const imageUrls = [
-      `${baseUrl}/abc${imgIdx}/s-l1600.webp`,
-    ];
+    const imageUrls = [`${baseUrl}/abc${imgIdx}/s-l1600.webp`];
 
     const product = await Product.create({
       title: p.title,
@@ -153,36 +160,119 @@ async function seed() {
 
   const seededProducts = await Product.find({ sellerId: seller._id }).sort({ createdAt: 1 }).limit(5).lean();
 
-  if (seededProducts.length >= 3) {
-    const order1 = await Order.create({
-      buyerId: buyer._id,
-      addressId: address._id,
-      totalPrice: seededProducts[0].price + seededProducts[1].price * 2,
-      status: "paid",
-      orderDate: new Date(Date.now() - 2 * 24 * 3600 * 1000),
-    });
-    await OrderItem.create({ orderId: order1._id, productId: seededProducts[0]._id, quantity: 1, unitPrice: seededProducts[0].price });
-    await OrderItem.create({ orderId: order1._id, productId: seededProducts[1]._id, quantity: 2, unitPrice: seededProducts[1].price });
+  const buyerSnapshot = {
+    buyerName: buyer.username === "buyer" ? "Jane Doe" : buyer.username,
+    buyerUsername: buyer.username,
+  };
+  const addrSnapshot = {
+    fullName: address.fullName,
+    phone: address.phone,
+    street: address.street,
+    city: address.city,
+    state: address.state,
+    country: address.country,
+  };
 
-    const order2 = await Order.create({
+  if (seededProducts.length >= 3) {
+    const p0 = seededProducts[0];
+    const p1 = seededProducts[1];
+    const order1Total = p0.price + p1.price * 2;
+    const order1 = await Order.create({
+      orderNumber: await generateOrderNumber(),
       buyerId: buyer._id,
+      ...buyerSnapshot,
       addressId: address._id,
-      totalPrice: seededProducts[2].price,
-      status: "shipped",
-      orderDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+      shippingAddress: addrSnapshot,
+      totalPrice: order1Total,
+      pricing: {
+        itemPrice: p0.price,
+        quantity: 3,
+        subtotal: order1Total,
+        shippingCost: 0,
+        tax: 0,
+        total: order1Total,
+        currency: "USD",
+      },
+      listingTitle: p0.title,
+      listingImage: p0.images?.[0],
+      status: "paid",
+      paymentStatus: "paid",
+      paymentDate: new Date(Date.now() - 1 * 24 * 3600 * 1000),
+      orderDate: new Date(Date.now() - 2 * 24 * 3600 * 1000),
+      purchaseDate: new Date(Date.now() - 2 * 24 * 3600 * 1000),
     });
-    await OrderItem.create({ orderId: order2._id, productId: seededProducts[2]._id, quantity: 1, unitPrice: seededProducts[2].price });
+    await OrderItem.create({ orderId: order1._id, productId: p0._id, quantity: 1, unitPrice: p0.price });
+    await OrderItem.create({ orderId: order1._id, productId: p1._id, quantity: 2, unitPrice: p1.price });
+
+    const p2 = seededProducts[2];
+    const order2 = await Order.create({
+      orderNumber: await generateOrderNumber(),
+      buyerId: buyer._id,
+      ...buyerSnapshot,
+      addressId: address._id,
+      shippingAddress: addrSnapshot,
+      totalPrice: p2.price,
+      pricing: {
+        itemPrice: p2.price,
+        quantity: 1,
+        subtotal: p2.price,
+        shippingCost: 0,
+        tax: 0,
+        total: p2.price,
+        currency: "USD",
+      },
+      listingTitle: p2.title,
+      listingImage: p2.images?.[0],
+      status: "shipped",
+      paymentStatus: "paid",
+      paymentDate: new Date(Date.now() - 4 * 24 * 3600 * 1000),
+      orderDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+      purchaseDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+      tracking: {
+        carrier: "USPS",
+        trackingNumber: "9400111202555555555555",
+        shippedDate: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+        estimatedDelivery: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+      },
+    });
+    await OrderItem.create({ orderId: order2._id, productId: p2._id, quantity: 1, unitPrice: p2.price });
 
     if (seededProducts.length >= 5) {
+      const p3 = seededProducts[3];
+      const p4 = seededProducts[4];
+      const order3Total = p3.price + p4.price;
       const order3 = await Order.create({
+        orderNumber: await generateOrderNumber(),
         buyerId: buyer._id,
+        ...buyerSnapshot,
         addressId: address._id,
-        totalPrice: seededProducts[3].price + seededProducts[4].price,
+        shippingAddress: addrSnapshot,
+        totalPrice: order3Total,
+        pricing: {
+          itemPrice: p3.price,
+          quantity: 2,
+          subtotal: order3Total,
+          shippingCost: 0,
+          tax: 0,
+          total: order3Total,
+          currency: "USD",
+        },
+        listingTitle: p3.title,
+        listingImage: p3.images?.[0],
         status: "delivered",
+        paymentStatus: "paid",
+        paymentDate: new Date(Date.now() - 9 * 24 * 3600 * 1000),
         orderDate: new Date(Date.now() - 10 * 24 * 3600 * 1000),
+        purchaseDate: new Date(Date.now() - 10 * 24 * 3600 * 1000),
+        tracking: {
+          carrier: "FedEx",
+          trackingNumber: "778912345678901",
+          shippedDate: new Date(Date.now() - 8 * 24 * 3600 * 1000),
+          estimatedDelivery: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+        },
       });
-      await OrderItem.create({ orderId: order3._id, productId: seededProducts[3]._id, quantity: 1, unitPrice: seededProducts[3].price });
-      await OrderItem.create({ orderId: order3._id, productId: seededProducts[4]._id, quantity: 1, unitPrice: seededProducts[4].price });
+      await OrderItem.create({ orderId: order3._id, productId: p3._id, quantity: 1, unitPrice: p3.price });
+      await OrderItem.create({ orderId: order3._id, productId: p4._id, quantity: 1, unitPrice: p4.price });
     }
 
     console.log("Seeded 3 test orders successfully");
