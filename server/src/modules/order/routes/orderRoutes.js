@@ -8,8 +8,9 @@ router.use(auth, sellerCheck);
 
 router.get("/", ctrl.getSellerOrders);
 router.get("/stats", ctrl.getSellerStats);
+router.post("/", ctrl.createOrder);
 router.get("/:orderId", ctrl.getOrderById);
-router.post("/:orderId/shipping", ctrl.createShipping);
+router.post("/:orderId/shipping", ctrl.addTracking);
 router.patch("/:orderId/status", ctrl.updateOrderStatus);
 
 module.exports = router;

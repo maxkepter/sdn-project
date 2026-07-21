@@ -1,9 +1,115 @@
 const mongoose = require("mongoose");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const { User, Category, Product, Inventory, Address, Order, OrderItem } = require("./models");
 
+// ---- Fixture orders -------------------------------------------------------
+const FIXTURE_STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled", "returned"];
+const FIXTURE_BUYERS = [
+  { name: "Alice Nguyen", username: "alice_ng", email: "alice@example.com" },
+  { name: "Bob Tran",    username: "bob_t",   email: "bob@example.com" },
+  { name: "Carol Le",    username: "carol_l", email: "carol@example.com" },
+  { name: "David Pham",  username: "david_p", email: "david@example.com" },
+  { name: "Emma Vo",     username: "emma_v",  email: "emma@example.com" },
+  { name: "Frank Bui",   username: "frank_b", email: "frank@example.com" },
+  { name: "Grace Do",    username: "grace_d", email: "grace@example.com" },
+];
+
+const FIXTURE_CITIES = [
+  ["Hanoi", "Vietnam", "100000"],
+  ["HCMC", "Vietnam", "700000"],
+  ["Da Nang", "Vietnam", "550000"],
+  ["Hue", "Vietnam", "530000"],
+  ["Singapore", "Singapore", "238859"],
+  ["Bangkok", "Thailand", "10110"],
+];
+
+const FIXTURE_CARRIERS = ["VNPost", "DHL", "FedEx", "UPS", "J&T"];
+const FIXTURE_CURRENCIES = ["USD", "USD", "USD", "EUR"]; // weighted toward USD
+const FIXTURE_NOTES = [
+  "",
+  "Handle with care — fragile item",
+  "Gift wrap requested",
+  "Customer requested express shipping",
+  "VIP customer — priority handling",
+  "Bulk order — verify quantities on arrival",
+];
+
+function fixturePad(n, len = 6) {
+  return String(n).padStart(len, "0");
+}
+
+function fixtureYmd(date) {
+  return `${date.getFullYear()}${fixturePad(date.getMonth() + 1, 2)}${fixturePad(date.getDate(), 2)}`;
+}
+
+function fixtureDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+function fixtureHoursAgo(h) {
+  const d = new Date();
+  d.setHours(d.getHours() - h);
+  return d;
+}
+
+// ponytail: 40 rows spanning ~60 days — enough to exercise filters/pagination/sort.
+const FIXTURE_ORDERS = Array.from({ length: 40 }, (_, i) => {
+  const buyer = FIXTURE_BUYERS[i % FIXTURE_BUYERS.length];
+  const status = FIXTURE_STATUSES[i % FIXTURE_STATUSES.length];
+  const quantity = (i % 4) + 1;                                  // 1..4
+  const shippingCost = [0, 0, 5.99, 9.99, 14.5][i % 5];
+  const taxRate = 0.08;
+  const currency = FIXTURE_CURRENCIES[i % FIXTURE_CURRENCIES.length];
+
+  // Spread purchases across 60 days, with a cluster "today" (i % 6 === 0) for "fresh" testing.
+  const daysBack = i % 3 === 0 ? i % 5 : 5 + i;
+  const purchaseDate = daysBack < 1 ? fixtureHoursAgo(i * 3) : fixtureDaysAgo(daysBack);
+  const paymentDate = status === "pending" ? null : new Date(purchaseDate.getTime() + 1000 * 60 * 30); // +30min
+
+  const [city, country, postal] = FIXTURE_CITIES[i % FIXTURE_CITIES.length];
+
+  const tracking =
+    status === "shipped" || status === "delivered"
+      ? {
+          carrier: FIXTURE_CARRIERS[i % FIXTURE_CARRIERS.length],
+          trackingNumber: "TRK" + fixturePad(100000 + i, 8),
+          shippedDate: new Date(purchaseDate.getTime() + 1000 * 60 * 60), // +1h
+          estimatedDelivery: new Date(purchaseDate.getTime() + 1000 * 60 * 60 * 24 * 3), // +3d
+        }
+      : undefined;
+
+  return {
+    status,
+    quantity,
+    shippingCost,
+    taxRate,
+    currency,
+    buyer,
+    purchaseDate,
+    paymentDate,
+    shippingAddress: {
+      fullName: buyer.name,
+      phone: "+84 9" + fixturePad(10000000 + i, 8),
+      street: `${10 + i} Main Street`,
+      ward: "Ward " + ((i % 5) + 1),
+      district: "District " + ((i % 4) + 1),
+      city,
+      postalCode: postal,
+      country,
+    },
+    tracking,
+    sellerNotes: FIXTURE_NOTES[i % FIXTURE_NOTES.length],
+    orderNumber: `ORD-${fixtureYmd(purchaseDate)}-${fixturePad(i + 1)}`,
+  };
+});
+// ---------------------------------------------------------------------------
+
 const DATABASE_URL = process.env.DATABASE_URL || "mongodb://localhost:27017/sdn_db";
+const dropOnly = process.argv.includes("--drop");
 
 const categoryNames = [
   "Electronics", "Fashion", "Home & Garden", "Sports",
@@ -72,7 +178,26 @@ async function generateOrderNumber() {
 
 async function seed() {
   await mongoose.connect(DATABASE_URL);
+
+  if (dropOnly) {
+    await Promise.all([
+      User.deleteMany({}), Category.deleteMany({}), Product.deleteMany({}),
+      Inventory.deleteMany({}), Address.deleteMany({}), Order.deleteMany({}), OrderItem.deleteMany({}),
+    ]);
+    console.log("Dropped all collections");
+    await mongoose.disconnect();
+    return;
+  }
+
   console.log("Connected to MongoDB, seeding...");
+
+  // Clear ALL transactional data first to avoid stale references after re-seeding.
+  await Promise.all([
+    Order.deleteMany({}),
+    OrderItem.deleteMany({}),
+    Inventory.deleteMany({}),
+  ]);
+  console.log("Cleared orders, order items, and inventory");
 
   for (const name of categoryNames) {
     await Category.findOneAndUpdate({ name }, { name }, { upsert: true, new: true });
@@ -87,10 +212,10 @@ async function seed() {
     seller = await User.create({
       username: "seller",
       email: "seller@test.com",
-      password: "$2a$10$dummyhashedpassword",
+      password: await bcrypt.hash("password123", 10),
       role: "seller",
     });
-    console.log("Seller user created");
+    console.log("Seller user created (login: seller@test.com / password123)");
   }
 
   await Product.deleteMany({});
@@ -134,7 +259,7 @@ async function seed() {
     buyer = await User.create({
       username: "buyer",
       email: "buyer@test.com",
-      password: "$2a$10$dummyhashedpassword",
+      password: await bcrypt.hash("password123", 10),
       role: "buyer",
     });
     console.log("Buyer user created");
@@ -276,6 +401,78 @@ async function seed() {
     }
 
     console.log("Seeded 3 test orders successfully");
+  }
+
+  // Seed 20 fixture orders using the seller's own products + extra demo buyers.
+  const fixtureBuyerHash = await bcrypt.hash("password123", 10);
+  const fixtureBuyers = await Promise.all(
+    FIXTURE_BUYERS.map((b) =>
+      User.findOneAndUpdate(
+        { username: b.username },
+        {
+          username: b.username,
+          email: b.email,
+          password: fixtureBuyerHash,
+          role: "buyer",
+          firstName: b.name.split(" ")[0],
+          lastName: b.name.split(" ")[1] || "",
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+    )
+  );
+  const buyerByUsername = Object.fromEntries(fixtureBuyers.map((u) => [u.username, u]));
+
+  const sellerProducts = await Product.find({ sellerId: seller._id }).sort({ createdAt: 1 }).lean();
+  if (sellerProducts.length) {
+    await Order.deleteMany({ orderNumber: { $regex: /^ORD-/ } });
+    let i = 0;
+    for (const row of FIXTURE_ORDERS) {
+      const product = sellerProducts[i % sellerProducts.length];
+      const buyer = buyerByUsername[row.buyer.username];
+      const itemPrice = product.price;
+      const subtotal = itemPrice * row.quantity;
+      const tax = +(subtotal * row.taxRate).toFixed(2);
+      const total = +(subtotal + row.shippingCost + tax).toFixed(2);
+      const order = await Order.create({
+        orderNumber: row.orderNumber,
+        buyerId: buyer._id,
+        buyerName: row.buyer.name,
+        buyerUsername: row.buyer.username,
+        addressId: buyer._id,
+        orderDate: row.purchaseDate,
+        purchaseDate: row.purchaseDate,
+        paymentDate: row.paymentDate,
+        totalPrice: total,
+        pricing: {
+          itemPrice,
+          quantity: row.quantity,
+          subtotal,
+          shippingCost: row.shippingCost,
+          tax,
+          total,
+          currency: row.currency,
+        },
+        shippingAddress: row.shippingAddress,
+        listingTitle: product.title,
+        listingImage: product.images?.[0],
+        customSku: product.sku,
+        tracking: row.tracking,
+        status: row.status,
+        paymentStatus: row.status === "pending" ? "pending" : "paid",
+        sellerNotes: row.sellerNotes,
+      });
+      await OrderItem.create({
+        orderId: order._id,
+        productId: product._id,
+        quantity: row.quantity,
+        unitPrice: itemPrice,
+      });
+      i++;
+    }
+    console.log(`Seeded ${FIXTURE_ORDERS.length} fixture orders`);
+  } else {
+    console.log("Skipped fixture orders: seller has no products");
   }
 
   console.log(`\nSeeded ${productsData.length} products successfully`);

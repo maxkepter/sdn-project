@@ -27,15 +27,16 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
 
 // HTTP request logger
-app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
+// app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
 app.use(httpLogger);
 
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+// Serve uploaded files — use UPLOAD_DIR if set, else default
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "../public/uploads");
+app.use("/uploads", express.static(uploadDir));
 
 // Rate limiting
 app.use(limiter);
