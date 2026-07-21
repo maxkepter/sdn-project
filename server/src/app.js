@@ -34,8 +34,9 @@ app.use(httpLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+// Serve uploaded files — use UPLOAD_DIR if set, else default
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "../public/uploads");
+app.use("/uploads", express.static(uploadDir));
 
 // Rate limiting
 app.use(limiter);

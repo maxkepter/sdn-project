@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const { User, Category, Product, Inventory, Address, Order, OrderItem } = require("./models");
 
@@ -190,6 +191,14 @@ async function seed() {
 
   console.log("Connected to MongoDB, seeding...");
 
+  // Clear ALL transactional data first to avoid stale references after re-seeding.
+  await Promise.all([
+    Order.deleteMany({}),
+    OrderItem.deleteMany({}),
+    Inventory.deleteMany({}),
+  ]);
+  console.log("Cleared orders, order items, and inventory");
+
   for (const name of categoryNames) {
     await Category.findOneAndUpdate({ name }, { name }, { upsert: true, new: true });
   }
@@ -203,10 +212,10 @@ async function seed() {
     seller = await User.create({
       username: "seller",
       email: "seller@test.com",
-      password: "$2a$10$dummyhashedpassword",
+      password: await bcrypt.hash("password123", 10),
       role: "seller",
     });
-    console.log("Seller user created");
+    console.log("Seller user created (login: seller@test.com / password123)");
   }
 
   await Product.deleteMany({});
@@ -250,7 +259,7 @@ async function seed() {
     buyer = await User.create({
       username: "buyer",
       email: "buyer@test.com",
-      password: "$2a$10$dummyhashedpassword",
+      password: await bcrypt.hash("password123", 10),
       role: "buyer",
     });
     console.log("Buyer user created");
@@ -395,6 +404,7 @@ async function seed() {
   }
 
   // Seed 20 fixture orders using the seller's own products + extra demo buyers.
+  const fixtureBuyerHash = await bcrypt.hash("password123", 10);
   const fixtureBuyers = await Promise.all(
     FIXTURE_BUYERS.map((b) =>
       User.findOneAndUpdate(
@@ -402,7 +412,7 @@ async function seed() {
         {
           username: b.username,
           email: b.email,
-          password: "$2a$10$dummyhashedpassword",
+          password: fixtureBuyerHash,
           role: "buyer",
           firstName: b.name.split(" ")[0],
           lastName: b.name.split(" ")[1] || "",
