@@ -8,7 +8,10 @@ export default function SellerOverview() {
 
   useEffect(() => {
     apiClient.get("/orders/stats").then((r) => setStats(r.data)).catch(() => {});
-    apiClient.get("/orders").then((r) => setOrders(r.data)).catch(() => {});
+    apiClient
+      .get("/orders")
+      .then((r) => setOrders(Array.isArray(r.data?.orders) ? r.data.orders : []))
+      .catch(() => {});
   }, []);
 
   const awaiting = orders.filter((o) => o.status === "paid");

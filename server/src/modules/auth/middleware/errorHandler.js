@@ -1,4 +1,5 @@
 const environment = require("../../../config/environment");
+const { logError } = require("./httpLogger");
 
 /**
  * Global error handling middleware.
@@ -8,13 +9,14 @@ const environment = require("../../../config/environment");
 const errorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
 
+  logError(req.method, req.originalUrl, err);
+
   const response = {
     success: false,
     message: err.message || "Internal Server Error",
     ...(environment.env === "development" && { stack: err.stack }),
   };
 
-  console.error(`[Error] ${err.message}`);
   res.status(statusCode).json(response);
 };
 

@@ -4,12 +4,17 @@ const environment = require("../../../config/environment");
 
 exports.bypassLogin = async (req, res, next) => {
   try {
-    let user = await User.findOne({ role: "seller" });
+    // ponytail: prefer the seeded seller so bypass matches seeded products + orders.
+    let user = await User.findOne({ email: "seller@test.com", role: "seller" });
     if (!user) {
+      user = await User.findOne({ role: "seller" });
+    }
+    if (!user) {
+      const bcrypt = require("bcryptjs");
       user = await User.create({
         username: "seller",
         email: "seller@test.com",
-        password: "$2a$10$dummyhashedpassword",
+        password: await bcrypt.hash("password123", 10),
         role: "seller",
       });
     }
