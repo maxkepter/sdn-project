@@ -37,7 +37,7 @@ const BecomeSeller = () => {
     setZipError("");
     
     try {
-      await upgradeToSeller();
+      await upgradeToSeller({ country, city: "", address });
       navigate("/seller");
     } catch (err) {
       console.error("Failed to upgrade to seller", err);

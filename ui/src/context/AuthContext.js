@@ -49,8 +49,8 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const upgradeToSeller = async () => {
-    const res = await apiClient.post('/auth/upgrade');
+  const upgradeToSeller = async (data = {}) => {
+    const res = await apiClient.post('/auth/upgrade', data);
     localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
     return res.data;
