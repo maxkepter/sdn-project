@@ -59,7 +59,7 @@ exports.getProduct = async (req, res, next) => {
 
 exports.createProduct = async (req, res, next) => {
   try {
-    const { title, description, price, categoryId, sku, quantity } = req.body;
+    const { title, description, price, categoryId, storeCategoryId, sku, quantity } = req.body;
 
     const images = req.files ? req.files.map((f) => "/uploads/" + f.filename) : [];
 
@@ -69,6 +69,7 @@ exports.createProduct = async (req, res, next) => {
       price,
       images,
       categoryId,
+      storeCategoryId: storeCategoryId || null,
       sellerId: req.user._id,
       sku: sku || "",
     });
@@ -92,12 +93,13 @@ exports.updateProduct = async (req, res, next) => {
     const product = await Product.findOne({ _id: req.params.id, sellerId: req.user._id });
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    const { title, description, price, categoryId, sku } = req.body;
+    const { title, description, price, categoryId, storeCategoryId, sku } = req.body;
 
     if (title !== undefined) product.title = title;
     if (description !== undefined) product.description = description;
     if (price !== undefined) product.price = price;
     if (categoryId !== undefined) product.categoryId = categoryId;
+    if (storeCategoryId !== undefined) product.storeCategoryId = storeCategoryId || null;
     if (sku !== undefined) product.sku = sku;
 
     if (req.files && req.files.length > 0) {

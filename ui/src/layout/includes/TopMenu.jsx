@@ -9,31 +9,68 @@ export default function TopMenu() {
   const { user, logout } = useContext(AuthContext);
   const [isMenu, setIsMenu] = useState(false);
 
-  const isLoggedIn = () => {
+  const renderUserAuth = () => {
     if (user && user?.id) {
       return (
-        <button
-          onClick={() => (!isMenu ? setIsMenu(true) : setIsMenu(false))}
-          className="flex items-center gap-1 hover:underline cursor-pointer"
-        >
-          <div>Hi <b>{user.firstName || user.username}</b>!</div>
-          <BsChevronDown size={10} />
-        </button>
+        <li className="relative group flex items-center h-full pr-4 z-50">
+          <span className="flex items-center gap-1 hover:underline cursor-pointer">
+            <div>Hi <b>{user.firstName || user.username}</b>!</div>
+            <BsChevronDown size={10} />
+          </span>
+
+          <div className="absolute hidden group-hover:block bg-white w-[280px] text-[#333333] top-[100%] left-0 rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.2)] p-4 cursor-default">
+            <div className="flex items-start gap-4 mb-4">
+              {/* Big Gray Avatar */}
+              <div 
+                onClick={() => navigate(`/usr/${user.username}`)}
+                className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 cursor-pointer hover:opacity-90"
+              >
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <div className="font-bold text-[14px]">
+                  {user.firstName} {user.lastName}
+                </div>
+                <div 
+                  onClick={() => navigate(`/usr/${user.username}`)}
+                  className="text-[13px] text-[#3665f3] hover:underline cursor-pointer"
+                >
+                  {user.username} (0)
+                </div>
+              </div>
+            </div>
+
+            <ul className="flex flex-col gap-4 text-[14px] text-gray-800 mt-2">
+              <li className="hover:underline cursor-pointer" onClick={() => navigate('/settings')}>
+                Account settings
+              </li>
+              <li 
+                onClick={() => logout()}
+                className="hover:underline cursor-pointer"
+              >
+                Sign out
+              </li>
+            </ul>
+          </div>
+        </li>
       );
     }
 
     return (
-      <Link
-        to="/login"
-        className="flex items-center gap-1 hover:underline cursor-pointer"
-      >
-        <div>Sign in</div>
-        <span>or</span>
-        <Link to="/register" className="text-blue-600 hover:underline">register</Link>
-      </Link>
+      <li className="relative pr-4">
+        <Link
+          to="/login"
+          className="flex items-center gap-1 hover:underline cursor-pointer"
+        >
+          <div>Sign in</div>
+          <span>or</span>
+          <Link to="/register" className="text-blue-600 hover:underline">register</Link>
+        </Link>
+      </li>
     );
   };
-
   return (
     <div id="TopMenu" className="border-b bg-white">
       <div className="flex items-center justify-between w-full mx-auto max-w-[1200px]">
@@ -41,42 +78,7 @@ export default function TopMenu() {
           id="TopMenuLeft"
           className="flex items-center text-[12px] text-gray-700 h-8"
         >
-          <li className="relative pr-4">
-            {isLoggedIn()}
-
-            <div
-              id="AuthDropdown"
-              className={`
-                absolute bg-white w-[200px] text-[#333333] z-40 top-[24px] left-0 border shadow-lg rounded-sm
-                ${isMenu ? "visible" : "hidden"}
-              `}
-            >
-              {user && user?.id && (
-                <div>
-                  <div className="flex items-center justify-start gap-2 p-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-lg font-bold text-gray-600">
-                      {(user?.firstName || user?.username)?.[0]?.toUpperCase()}
-                    </div>
-                    <div className="font-bold text-[13px]">{user?.firstName || user?.username}</div>
-                  </div>
-
-                  <div className="border-b" />
-
-                  <ul className="bg-white">
-                    <li className="text-[12px] py-2 px-4 w-full hover:underline hover:text-blue-600 cursor-pointer">
-                      <Link to="/orders">My orders</Link>
-                    </li>
-                    <li
-                      onClick={() => { logout(); setIsMenu(false); }}
-                      className="text-[12px] py-2 px-4 w-full hover:underline hover:text-blue-600 cursor-pointer"
-                    >
-                      Sign out
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </li>
+          {renderUserAuth()}
           <li className="px-3 hover:underline cursor-pointer">Deals</li>
           <li className="px-3 hover:underline cursor-pointer">Brand Outlet</li>
           <li className="px-3 hover:underline cursor-pointer">Gift Cards</li>

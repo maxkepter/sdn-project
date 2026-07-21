@@ -73,3 +73,12 @@ exports.createListing = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getSellerListings = async (req, res, next) => {
+  try {
+    const listings = await Product.find({ sellerId: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, listings });
+  } catch (err) {
+    next(err);
+  }
+};

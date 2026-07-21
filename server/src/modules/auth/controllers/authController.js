@@ -79,10 +79,14 @@ exports.getProfile = async (req, res, next) => {
 
 exports.upgradeToSeller = async (req, res, next) => {
   try {
+    const { country, city, address } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.role = "seller";
+    if (country) user.country = country;
+    if (city) user.city = city;
+    if (address) user.address = address;
     await user.save();
 
     const token = createToken(user);
@@ -98,6 +102,30 @@ exports.upgradeToSeller = async (req, res, next) => {
         role: user.role
       }
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getProfileByUsername = async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select("username firstName lastName role avatarURL country city createdAt").lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let storeInfo = null;
+    if (user.role === "seller") {
+      const Store = require("../../../models/Store");
+      const store = await Store.findOne({ sellerId: user._id }).lean();
+      if (store && store.slug && store.published && store.published.storeName) {
+        storeInfo = {
+          name: store.published.storeName,
+          slug: store.slug
+        };
+      }
+    }
+
+    res.json({ success: true, data: { ...user, store: storeInfo } });
   } catch (err) {
     next(err);
   }

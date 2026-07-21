@@ -8,6 +8,7 @@ const ProductSchema = new Schema(
     price: { type: Number, required: true, min: 0 },
     images: { type: [String], default: [] },
     categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
+    storeCategoryId: { type: Schema.Types.ObjectId, ref: "StoreCategory", default: null },
     sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     isAuction: { type: Boolean, default: false },
     auctionEndTime: { type: Date },
