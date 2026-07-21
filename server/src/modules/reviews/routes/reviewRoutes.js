@@ -13,6 +13,11 @@ router.post(
   upload.array("photos", 5),
   ctrl.createProductReview,
 );
+router.get(
+  "/products/:productId/delivered-orders",
+  auth,
+  ctrl.getBuyerDeliveredOrdersForProduct,
+);
 router.use(auth, sellerCheck);
 router.get("/seller/templates", ctrl.getSellerTemplates);
 router.put("/seller/templates", ctrl.updateSellerTemplates);

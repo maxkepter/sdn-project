@@ -118,6 +118,38 @@ exports.getSellerFeedbackAggregate = async (req, res, next) => {
   }
 };
 
+exports.getBuyerDeliveredOrdersForProduct = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const buyerOrders = await Order.find({
+      buyerId: req.user._id,
+      status: "delivered",
+    })
+      .select("_id orderNumber deliveredDate paymentDate updatedAt")
+      .lean();
+    if (buyerOrders.length === 0) return res.json([]);
+    const orderIds = buyerOrders.map((order) => order._id);
+    const items = await OrderItem.find({
+      productId,
+      orderId: { $in: orderIds },
+    })
+      .select("orderId")
+      .lean();
+    const orderIdSet = new Set(items.map((item) => item.orderId.toString()));
+    const result = buyerOrders
+      .filter((order) => orderIdSet.has(order._id.toString()))
+      .map((order) => ({
+        _id: order._id,
+        orderNumber: order.orderNumber || order._id,
+        deliveredDate:
+          order.deliveredDate || order.paymentDate || order.updatedAt,
+      }));
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.createProductReview = async (req, res, next) => {
   try {
     const rating = parseInt(req.body.rating, 10);
@@ -146,6 +178,25 @@ exports.createProductReview = async (req, res, next) => {
           message: "Only buyers with a delivered order can review this product",
         });
     const orderId = req.body.orderId || boughtItem.orderId;
+    if (req.body.orderId) {
+      const orderCheck = await Order.findOne({
+        _id: orderId,
+        buyerId: req.user._id,
+        status: "delivered",
+      }).lean();
+      if (!orderCheck)
+        return res
+          .status(403)
+          .json({ message: "Invalid order for this buyer" });
+      const itemCheck = await OrderItem.findOne({
+        orderId,
+        productId: product._id,
+      }).lean();
+      if (!itemCheck)
+        return res
+          .status(403)
+          .json({ message: "Order doesn't contain this product" });
+    }
     if (await Review.findOne({ reviewerId: req.user._id, orderId }))
       return res
         .status(409)
@@ -161,7 +212,7 @@ exports.createProductReview = async (req, res, next) => {
       photos: (req.files || []).map((file) => "/uploads/" + file.filename),
       verifiedPurchase: true,
     });
-    await recalcFeedback(product.sellerId);
+    await safeRecalcFeedback(product.sellerId);
     res.status(201).json(review);
   } catch (err) {
     next(err);
@@ -181,13 +232,50 @@ exports.getSellerReviews = async (req, res, next) => {
     const query = {
       productId: { $in: products.map((product) => product._id) },
     };
-    if (req.query.status) query.status = req.query.status;
-    if (req.query.rating) query.rating = parseInt(req.query.rating, 10);
+    const andClauses = [];
+    if (req.query.status && req.query.status !== "all") {
+      andClauses.push({ status: req.query.status === "reported" ? "pending_moderation" : req.query.status });
+    }
+    if (req.query.rating) {
+      andClauses.push({ rating: parseInt(req.query.rating, 10) });
+    }
+    if (req.query.hasResponse) {
+      if (req.query.hasResponse === "true") {
+        andClauses.push({ "sellerResponse.message": { $exists: true, $ne: "" } });
+      } else if (req.query.hasResponse === "false") {
+        andClauses.push({
+          $or: [
+            { "sellerResponse.message": { $exists: false } },
+            { "sellerResponse.message": "" },
+          ],
+        });
+      }
+    }
+    if (req.query.search && req.query.search.trim()) {
+      const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
+      andClauses.push({
+        $or: [
+          { comment: searchRegex },
+          { title: searchRegex },
+        ],
+      });
+    }
+    if (andClauses.length > 0) {
+      query.$and = andClauses;
+    }
+
+    const sortMap = {
+      newest: { reviewDate: -1 },
+      oldest: { reviewDate: 1 },
+      highest_rating: { rating: -1, reviewDate: -1 },
+      lowest_rating: { rating: 1, reviewDate: -1 },
+    };
+
     const [reviews, total] = await Promise.all([
       Review.find(query)
         .populate("productId", "title images")
         .populate("reviewerId", "username firstName lastName avatarURL")
-        .sort({ reviewDate: -1 })
+        .sort(sortMap[req.query.sort] || sortMap.newest)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
@@ -204,16 +292,29 @@ exports.getSellerReviews = async (req, res, next) => {
 
 exports.getReviewStatistics = async (req, res, next) => {
   try {
+    const products = await Product.find({ sellerId: req.user._id }).select("_id").lean();
+    const productIds = products.map((product) => product._id);
+    const totalReviews = await Review.countDocuments({ productId: { $in: productIds } });
+    const respondedCount = await Review.countDocuments({
+      productId: { $in: productIds },
+      "sellerResponse.message": { $exists: true, $ne: "" },
+    });
+    await safeRecalcFeedback(req.user._id);
     const feedback = await Feedback.findOne({ sellerId: req.user._id }).lean();
-    res.json(
-      feedback || {
-        averageRating: 0,
-        totalReviews: 0,
-        positiveRate: 0,
-        recentCount: 0,
-        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      },
-    );
+    const stats = feedback || {
+      averageRating: 0,
+      totalReviews: 0,
+      positiveRate: 0,
+      recentCount: 0,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+    const responseRate = totalReviews > 0 ? Number(((respondedCount / totalReviews) * 100).toFixed(1)) : 0;
+    res.json({
+      ...stats,
+      totalReviews: totalReviews || stats.totalReviews,
+      respondedCount,
+      responseRate,
+    });
   } catch (err) {
     next(err);
   }
@@ -234,68 +335,147 @@ exports.getOrdersAwaitingFeedback = async (req, res, next) => {
       })
       .populate("productId", "title")
       .lean();
-    const orders = [];
+    const uniqueOrders = [];
     const seenOrderIds = new Set();
     for (const item of orderItems) {
       const order = item.orderId;
       if (!order) continue;
-      if (seenOrderIds.has(order._id.toString())) continue;
-      seenOrderIds.add(order._id.toString());
-      const existingReview = await Review.findOne({ orderId: order._id }).lean();
-      orders.push({
-        _id: order._id,
-        orderNumber: order.orderNumber || order._id,
-        buyer: order.buyerId,
-        deliveredDate: order.deliveredDate || order.updatedAt,
-        status: order.status,
-        hasReview: Boolean(existingReview),
-      });
+      const orderIdString = order._id.toString();
+      if (seenOrderIds.has(orderIdString)) continue;
+      seenOrderIds.add(orderIdString);
+      uniqueOrders.push(order);
     }
-    res.json(orders);
+    if (uniqueOrders.length === 0) return res.json([]);
+    const orderIds = uniqueOrders.map((order) => order._id);
+    const existingReviews = await Review.find({
+      orderId: { $in: orderIds },
+      productId: { $in: productIds },
+    })
+      .select("orderId productId")
+      .lean();
+    const reviewedSet = new Set(
+      existingReviews.map((review) => review.orderId.toString()),
+    );
+    const result = uniqueOrders.map((order) => ({
+      _id: order._id,
+      orderNumber: order.orderNumber || order._id,
+      buyer: order.buyerId,
+      deliveredDate: order.deliveredDate || order.paymentDate || order.updatedAt,
+      status: order.status,
+      hasReview: reviewedSet.has(order._id.toString()),
+    }));
+    res.json(result);
   } catch (err) {
     next(err);
   }
 };
 
-async function saveResponse(req, res, next, system) {
+// Three behaviors kept deliberately separate so future auth/audit work doesn't
+// have to read a parameterized helper.
+//   POST /respond         -> new seller-authored response
+//   PUT  /response        -> edit existing response (preserve respondedAt)
+//   POST /system-response -> backoffice/system-posted response with templateKey
+
+function validateResponseMessage(message) {
+  const trimmed = (message || "").trim();
+  if (!trimmed || trimmed.length > 5000) {
+    return "message is required and cannot exceed 5000 characters";
+  }
+  return null;
+}
+
+exports.respondToReview = async (req, res, next) => {
   try {
     const review = await ownedReview(req.params.reviewId, req.user._id);
     if (!review) return res.status(404).json({ message: "Review not found" });
-    const message = (req.body.message || "").trim();
-    if (!message || message.length > 5000)
-      return res
-        .status(400)
-        .json({
-          message: "message is required and cannot exceed 5000 characters",
-        });
+    const validationError = validateResponseMessage(req.body.message);
+    if (validationError)
+      return res.status(400).json({ message: validationError });
     const now = new Date();
     review.sellerResponse = {
-      message,
-      respondedAt: review.sellerResponse?.respondedAt || now,
+      message: req.body.message.trim(),
+      respondedAt: now,
       updatedAt: now,
-      isSystem: system,
-      templateKey: req.body.templateKey || undefined,
+      isSystem: false,
+      templateKey: undefined,
     };
     await review.save();
     res.json(review);
   } catch (err) {
     next(err);
   }
+};
+
+exports.updateReviewResponse = async (req, res, next) => {
+  try {
+    const review = await ownedReview(req.params.reviewId, req.user._id);
+    if (!review) return res.status(404).json({ message: "Review not found" });
+    const validationError = validateResponseMessage(req.body.message);
+    if (validationError)
+      return res.status(400).json({ message: validationError });
+    const now = new Date();
+    review.sellerResponse = {
+      message: req.body.message.trim(),
+      respondedAt: review.sellerResponse?.respondedAt || now,
+      updatedAt: now,
+      isSystem: false,
+      templateKey: review.sellerResponse?.templateKey,
+    };
+    await review.save();
+    res.json(review);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.systemRespondToReview = async (req, res, next) => {
+  try {
+    const review = await ownedReview(req.params.reviewId, req.user._id);
+    if (!review) return res.status(404).json({ message: "Review not found" });
+    const validationError = validateResponseMessage(req.body.message);
+    if (validationError)
+      return res.status(400).json({ message: validationError });
+    if (!req.body.templateKey)
+      return res
+        .status(400)
+        .json({ message: "templateKey is required for system responses" });
+    const now = new Date();
+    review.sellerResponse = {
+      message: req.body.message.trim(),
+      respondedAt: now,
+      updatedAt: now,
+      isSystem: true,
+      templateKey: req.body.templateKey,
+    };
+    await review.save();
+    res.json(review);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// recalcFeedback may legitimately fail (DB blip). Squelch it so a transient
+// aggregate hiccup doesn't fail the user-facing response; the recalc can run
+// lazily on the next stats call via S-3.
+async function safeRecalcFeedback(sellerId) {
+  try {
+    await recalcFeedback(sellerId);
+  } catch (err) {
+    console.error("recalcFeedback failed for sellerId=" + sellerId + ":", err);
+  }
 }
-exports.respondToReview = (req, res, next) =>
-  saveResponse(req, res, next, false);
-exports.systemRespondToReview = (req, res, next) =>
-  saveResponse(req, res, next, true);
-exports.updateReviewResponse = async (req, res, next) =>
-  saveResponse(req, res, next, false);
 
 exports.hideReview = async (req, res, next) => {
   try {
     const review = await ownedReview(req.params.reviewId, req.user._id);
     if (!review) return res.status(404).json({ message: "Review not found" });
+    if (review.status !== "published")
+      return res
+        .status(400)
+        .json({ message: "Only published reviews can be hidden" });
     review.status = "hidden";
     await review.save();
-    await recalcFeedback(review.sellerId);
+    await safeRecalcFeedback(review.sellerId);
     res.json(review);
   } catch (err) {
     next(err);
@@ -305,9 +485,11 @@ exports.unhideReview = async (req, res, next) => {
   try {
     const review = await ownedReview(req.params.reviewId, req.user._id);
     if (!review) return res.status(404).json({ message: "Review not found" });
+    if (review.status !== "hidden")
+      return res.status(400).json({ message: "Review is not hidden" });
     review.status = "published";
     await review.save();
-    await recalcFeedback(review.sellerId);
+    await safeRecalcFeedback(review.sellerId);
     res.json(review);
   } catch (err) {
     next(err);
@@ -322,7 +504,7 @@ exports.reportReview = async (req, res, next) => {
     review.reportedAt = new Date();
     review.status = "pending_moderation";
     await review.save();
-    await recalcFeedback(review.sellerId);
+    await safeRecalcFeedback(review.sellerId);
     res.json(review);
   } catch (err) {
     next(err);
@@ -339,12 +521,21 @@ exports.getSellerTemplates = async (req, res, next) => {
 };
 exports.updateSellerTemplates = async (req, res, next) => {
   try {
-    const templates = Array.isArray(req.body.templates)
-      ? req.body.templates
-      : [];
+    const incoming = Array.isArray(req.body.templates) ? req.body.templates : [];
+    const existingDoc = await Feedback.findOne({ sellerId: req.user._id })
+      .select("templates")
+      .lean();
+    const existing = existingDoc?.templates || [];
+    const merged = incoming.map((template) => {
+      const prev = existing.find((entry) => entry.templateKey === template.templateKey);
+      return {
+        ...template,
+        createdAt: prev?.createdAt || new Date(),
+      };
+    });
     const feedback = await Feedback.findOneAndUpdate(
       { sellerId: req.user._id },
-      { templates },
+      { templates: merged },
       { upsert: true, new: true },
     );
     res.json(feedback.templates);

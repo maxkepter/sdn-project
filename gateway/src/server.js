@@ -1,6 +1,7 @@
 const app = require("./app");
 const environment = require("./config/environment");
 const { connectRabbitMQ } = require("./services/rabbitmq");
+const { startHealthChecks } = require("./services/loadBalancer");
 
 const startServer = async () => {
   await connectRabbitMQ();
@@ -8,6 +9,7 @@ const startServer = async () => {
   const server = app.listen(environment.port, () => {
     console.log(`Gateway running on port ${environment.port}`);
     console.log(`Backends: ${environment.backends.join(", ")}`);
+    startHealthChecks();
   });
 
   process.on("unhandledRejection", (err) => {

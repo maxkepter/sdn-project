@@ -3,55 +3,90 @@ import { useParams } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
 import ProductReviews from "../components/ProductReviews";
 import LeaveReviewModal from "../components/LeaveReviewModal";
+import apiClient from "../services/apiClient";
+import { useAuth } from "../hooks/useAuth";
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`http://localhost:5000/api/v1/products/${id}`, { headers })
-      .then(async (response) => {
-        if (!response.ok) {
-          setError("Product not found");
-          return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const response = await apiClient.get(`/public/products/${id}`);
+        if (!cancelled) setProduct(response.data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.response?.data?.message || "Unable to load product",
+          );
         }
-        const data = await response.json();
-        setProduct(data);
-      })
-      .catch(() => setError("Unable to load product"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   return (
     <MainLayout>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {error && <p className="text-red-600 mb-4">{error}</p>}
+        {error && (
+          <p className="mb-4 p-3 rounded bg-red-50 border border-red-300 text-red-700">
+            {error}
+          </p>
+        )}
+        {loading && (
+          <div className="p-6 text-center text-gray-500">
+            Loading product...
+          </div>
+        )}
         {product && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h1 className="text-3xl font-bold mb-2">{product.title || product.name}</h1>
+            <h1 className="text-3xl font-bold mb-2">
+              {product.title || product.name}
+            </h1>
             <p className="text-gray-700 mb-4">{product.description}</p>
             <div className="flex items-center justify-between">
               <span className="text-2xl font-semibold text-blue-600">
                 {product.price ? `$${product.price}` : ""}
               </span>
-              <button
-                type="button"
-                onClick={() => setModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
-              >
-                Leave a Review
-              </button>
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                >
+                  Leave a Review
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Login required to leave a review"
+                  className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
+                >
+                  Login to leave a review
+                </button>
+              )}
             </div>
           </div>
         )}
 
         <ProductReviews productId={id} />
 
-        {modalOpen && (
+        {modalOpen && user && (
           <LeaveReviewModal
             productId={id}
             onClose={() => setModalOpen(false)}

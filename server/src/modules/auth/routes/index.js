@@ -16,6 +16,7 @@ router.use("/products", productRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/coupons", couponRoutes);
 router.use("/categories", publicRoutes);
+router.use("/public", publicRoutes);
 
 router.use("/reviews", reviewRoutes);
 

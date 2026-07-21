@@ -50,6 +50,7 @@ const OrderSchema = new Schema(
       default: "pending",
     },
     paymentDate: { type: Date },
+    deliveredDate: { type: Date },
     sellerNotes: { type: String },
   },
   { timestamps: true }
