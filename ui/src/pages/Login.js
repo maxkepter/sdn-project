@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password || "password"); 
-      navigate("/seller");
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     }
@@ -33,7 +33,7 @@ const Login = () => {
   const handleBypass = async () => {
     try {
       await bypassLogin();
-      navigate("/seller");
+      navigate("/");
     } catch (err) {
       setError("Bypass failed: " + err.message);
     }

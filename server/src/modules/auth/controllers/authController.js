@@ -76,3 +76,29 @@ exports.getProfile = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.upgradeToSeller = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.role = "seller";
+    await user.save();
+
+    const token = createToken(user);
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
