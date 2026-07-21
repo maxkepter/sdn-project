@@ -44,6 +44,9 @@ app.use(limiter);
 // API routes
 app.use("/api/v1", routes);
 
+const storeRoutes = require("./modules/store/routes/storeRoutes");
+app.use("/api/v1/store", storeRoutes);
+
 // Public listing creation (no auth required)
 const listingsRoutes = require("./modules/listings/routes/listingsRoutes");
 app.use("/api/v1/listings", listingsRoutes);

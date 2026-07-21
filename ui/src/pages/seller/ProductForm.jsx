@@ -8,6 +8,7 @@ export default function ProductForm() {
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState([]);
+  const [storeCategories, setStoreCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState("");
@@ -16,6 +17,7 @@ export default function ProductForm() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [storeCategoryId, setStoreCategoryId] = useState("");
   const [sku, setSku] = useState("");
   const [quantity, setQuantity] = useState("10");
   const [files, setFiles] = useState([]);
@@ -25,8 +27,14 @@ export default function ProductForm() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await apiClient.get("/categories");
-        setCategories(res.data);
+        const [catRes, storeCatRes] = await Promise.all([
+          apiClient.get("/categories"),
+          apiClient.get("/store/categories")
+        ]);
+        setCategories(catRes.data);
+        if (storeCatRes.data && storeCatRes.data.success) {
+          setStoreCategories(storeCatRes.data.categories);
+        }
       } catch (err) {
         console.error("Error loading categories:", err);
       }
@@ -44,6 +52,7 @@ export default function ProductForm() {
         setDescription(p.description || "");
         setPrice(p.price);
         setCategoryId(p.categoryId?._id || "");
+        setStoreCategoryId(p.storeCategoryId || "");
         setSku(p.sku || "");
         setQuantity(p.inventory?.quantity ?? 10);
         setExistingImages(p.images || []);
@@ -88,6 +97,7 @@ export default function ProductForm() {
       formData.append("description", description);
       formData.append("price", price);
       formData.append("categoryId", categoryId);
+      if (storeCategoryId) formData.append("storeCategoryId", storeCategoryId);
       formData.append("sku", sku);
       formData.append("quantity", quantity);
       formData.append("existingImages", JSON.stringify(existingImages));
@@ -202,6 +212,23 @@ export default function ProductForm() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Store Category (Optional)
+                </label>
+                <select
+                  value={storeCategoryId}
+                  onChange={(e) => setStoreCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No store category</option>
+                  {storeCategories.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   SKU

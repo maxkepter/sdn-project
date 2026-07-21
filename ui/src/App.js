@@ -12,12 +12,14 @@ import Register from "./pages/Register";
 import BecomeSeller from "./pages/BecomeSeller";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/HomePage";
+import ProfilePage from "./pages/ProfilePage";
 import SellerHub from "./pages/seller/SellerHub";
 import SellerOverview from "./pages/seller/SellerOverview";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerListings from "./pages/seller/SellerListings";
 import SellerMarketing from "./pages/seller/SellerMarketing";
 import SellerStore from "./pages/seller/SellerStore";
+import SellerStoreCategories from "./pages/seller/SellerStoreCategories";
 import SellerPerformance from "./pages/seller/SellerPerformance";
 import SellerPayments from "./pages/seller/SellerPayments";
 import SellerResearch from "./pages/seller/SellerResearch";
@@ -29,7 +31,7 @@ import ShippedAwaitingFeedback from "./pages/seller/ShippedAwaitingFeedback";
 import ProductForm from "./pages/seller/ProductForm";
 import ListingPage from "./pages/ListingPage";
 import SellPage from "./pages/SellPage";
-import ProductDetail from "./pages/ProductDetail";
+import StoreFront from "./pages/store/StoreFront";
 
 function App() {
   return (
@@ -37,12 +39,13 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/usr/:username" element={<ProfilePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/become-seller" element={<BecomeSeller />} />
           <Route path="/listng" element={<ListingPage />} />
           <Route path="/sell" element={<SellPage />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/store/:slug" element={<StoreFront />} />
           <Route
             path="/dashboard"
             element={
@@ -64,6 +67,7 @@ function App() {
             <Route path="listings" element={<SellerListings />} />
             <Route path="marketing" element={<SellerMarketing />} />
             <Route path="store" element={<SellerStore />} />
+            <Route path="storecategories" element={<SellerStoreCategories />} />
             <Route path="performance" element={<SellerPerformance />} />
             <Route path="feedback" element={<SellerFeedback />} />
             <Route path="reviews" element={<SellerReviews />} />

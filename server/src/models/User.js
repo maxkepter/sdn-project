@@ -10,6 +10,9 @@ const UserSchema = new Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["buyer", "seller", "admin"], default: "buyer" },
     avatarURL: { type: String, default: "" },
+    country: { type: String, default: "" },
+    city: { type: String, default: "" },
+    address: { type: String, default: "" },
   },
   { timestamps: true }
 );
