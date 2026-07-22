@@ -11,7 +11,8 @@
     "amqplib": "^0.10.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "http-proxy-middleware": "^3.0.3"
+    "http-proxy-middleware": "^3.0.3",
+    "sdn-project-workspace": "file:.."
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
