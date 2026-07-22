@@ -33,7 +33,7 @@ const buyerLabel = (reviewer) => {
 
 export default function ProductReviews({ productId }) {
   const [reviews, setReviews] = useState([]);
-  const [feedback, setFeedback] = useState(null);
+  const [productSummary, setProductSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
@@ -45,27 +45,13 @@ export default function ProductReviews({ productId }) {
       setLoading(true);
       setError("");
       try {
-        const productResponse = await apiClient.get(
-          `/public/products/${productId}`,
-        );
-        const product = productResponse.data;
-        const sellerId = product?.sellerId?._id || product?.sellerId;
         const reviewsResponse = await apiClient.get(
           `/reviews/products/${productId}/reviews`,
           { params: ratingFilter ? { rating: ratingFilter } : {} },
         );
         if (cancelled) return;
         setReviews(reviewsResponse.data?.reviews || []);
-        if (sellerId) {
-          try {
-            const feedbackResponse = await apiClient.get(
-              `/reviews/sellers/${sellerId}/feedback`,
-            );
-            if (!cancelled) setFeedback(feedbackResponse.data || null);
-          } catch (feedbackErr) {
-            if (!cancelled) setFeedback(null);
-          }
-        }
+        setProductSummary(reviewsResponse.data?.summary || null);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -82,10 +68,10 @@ export default function ProductReviews({ productId }) {
     };
   }, [productId, ratingFilter]);
 
-  const averageRating = feedback?.averageRating
-    ? Number(feedback.averageRating).toFixed(1)
+  const averageRating = productSummary?.averageRating
+    ? Number(productSummary.averageRating).toFixed(1)
     : "0.0";
-  const totalReviews = feedback?.totalReviews ?? reviews.length;
+  const totalReviews = productSummary?.totalReviews ?? reviews.length;
 
   if (loading && reviews.length === 0) {
     return (
