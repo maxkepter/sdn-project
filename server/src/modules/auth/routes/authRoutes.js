@@ -8,5 +8,7 @@ router.post("/login", ctrl.login);
 router.post("/register", ctrl.register);
 router.get("/bypass", bypassCtrl.bypassLogin);
 router.get("/profile", auth, ctrl.getProfile);
+router.get("/profile/:username", ctrl.getProfileByUsername);
+router.post("/upgrade", auth, ctrl.upgradeToSeller);
 
 module.exports = router;

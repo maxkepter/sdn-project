@@ -3,12 +3,25 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "npm install && npm install --prefix server && npm install --prefix ui",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix ui && npm install --prefix gateway",
+    "install:gateway": "npm install --prefix gateway",
     "server": "npm run dev --prefix server",
+    "server:port": "npm run dev:port --prefix server --",
+    "server:start:port": "npm run start:port --prefix server --",
+    "server:5001": "cross-env UPLOAD_DIR=./uploads npm run server:port -- 5001",
+    "server:5002": "cross-env UPLOAD_DIR=./uploads npm run server:port -- 5002",
+    "server:5003": "cross-env UPLOAD_DIR=./uploads npm run server:port -- 5003",
+    "servers": "concurrently \"npm run server:5001\" \"npm run server:5002\" \"npm run server:5003\"",
+    "gateway": "npm start --prefix gateway",
+    "gateway:dev": "npm run dev --prefix gateway",
     "ui": "npm start --prefix ui",
-    "dev": "concurrently \"npm run server\" \"npm run ui\""
+    "dev": "concurrently \"npm run server\" \"npm run ui\"",
+    "dev:lb": "concurrently \"npm run gateway\" \"npm run servers\" \"npm run ui\"",
+    "seed": "node server/src/seed.js",
+    "seed:drop": "node server/src/seed.js --drop"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0"
   }
 }

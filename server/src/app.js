@@ -6,8 +6,19 @@ const morgan = require("morgan");
 const environment = require("./config/environment");
 const routes = require("./modules/auth/routes");
 const errorHandler = require("./modules/auth/middleware/errorHandler");
+const { httpLogger } = require("./modules/auth/middleware/httpLogger");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+const limiter = rateLimit({
+  windowMs: environment.rateLimit.windowMs,
+  max: environment.rateLimit.max,
+  message: {
+    status: 429,
+    message: "Too many requests, please try again later.",
+  },
+});
 
 // Security headers (relax for dev)
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -16,17 +27,25 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
 
 // HTTP request logger
-app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
+// app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
+app.use(httpLogger);
 
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+// Serve uploaded files — use UPLOAD_DIR if set, else default
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "../public/uploads");
+app.use("/uploads", express.static(uploadDir));
+
+// Rate limiting
+app.use(limiter);
 
 // API routes
 app.use("/api/v1", routes);
+
+const storeRoutes = require("./modules/store/routes/storeRoutes");
+app.use("/api/v1/store", storeRoutes);
 
 // Public listing creation (no auth required)
 const listingsRoutes = require("./modules/listings/routes/listingsRoutes");
