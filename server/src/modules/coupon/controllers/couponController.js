@@ -20,7 +20,7 @@ exports.getCoupons = async (req, res, next) => {
 
 exports.createCoupon = async (req, res, next) => {
   try {
-    const { code, discountPercent, startDate, endDate, maxUsage, productId } = req.body;
+    const { code, discountPercent, maxDiscountAmount, startDate, endDate, maxUsage, productId } = req.body;
 
     if (productId) {
       const product = await Product.findOne({ _id: productId, sellerId: req.user._id });
@@ -30,6 +30,7 @@ exports.createCoupon = async (req, res, next) => {
     const coupon = await Coupon.create({
       code: code.toUpperCase().trim(),
       discountPercent,
+      maxDiscountAmount: maxDiscountAmount || undefined,
       startDate,
       endDate,
       maxUsage: maxUsage || 1,

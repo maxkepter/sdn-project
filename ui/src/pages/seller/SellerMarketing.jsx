@@ -82,7 +82,7 @@ export default function SellerMarketing() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="text-left p-3">Code</th>
-                <th className="text-left p-3">Discount</th>
+                <th className="text-left p-3">Discount / Cap</th>
                 <th className="text-left p-3">Product</th>
                 <th className="text-left p-3">Valid</th>
                 <th className="text-left p-3">Max Usage</th>
@@ -93,7 +93,10 @@ export default function SellerMarketing() {
               {coupons.map((c) => (
                 <tr key={c._id} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-mono font-bold">{c.code}</td>
-                  <td className="p-3">{c.discountPercent}%</td>
+                  <td className="p-3">
+                    {c.discountPercent}%
+                    {c.maxDiscountAmount && <span className="text-xs text-gray-500 block">Max ${c.maxDiscountAmount}</span>}
+                  </td>
                   <td className="p-3">{c.productId?.title ? c.productId.title.substring(0, 30) : "All products"}</td>
                   <td className="p-3 text-xs">
                     {new Date(c.startDate).toLocaleDateString()} - {new Date(c.endDate).toLocaleDateString()}
@@ -115,6 +118,7 @@ export default function SellerMarketing() {
 function CouponForm({ products, onSave, onCancel }) {
   const [code, setCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(10);
+  const [maxDiscountAmount, setMaxDiscountAmount] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]);
   const [maxUsage, setMaxUsage] = useState(100);
@@ -127,6 +131,7 @@ function CouponForm({ products, onSave, onCancel }) {
     await onSave({
       code,
       discountPercent: Number(discountPercent),
+      maxDiscountAmount: maxDiscountAmount ? Number(maxDiscountAmount) : undefined,
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       maxUsage: Number(maxUsage),
@@ -144,9 +149,15 @@ function CouponForm({ products, onSave, onCancel }) {
             <label className="block text-xs font-medium text-gray-700">Code</label>
             <input required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="SUMMER20" />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700">Discount %</label>
-            <input required type="number" min="1" max="100" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-700">Discount %</label>
+              <input required type="number" min="1" max="100" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-700">Max Discount ($)</label>
+              <input type="number" min="0" step="0.01" value={maxDiscountAmount} onChange={(e) => setMaxDiscountAmount(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Optional cap" />
+            </div>
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
