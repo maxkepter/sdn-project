@@ -8,6 +8,7 @@ const CouponSchema = new Schema(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     maxUsage: { type: Number, default: 1 },
+    maxDiscountAmount: { type: Number, min: 0 },
     productId: { type: Schema.Types.ObjectId, ref: "Product" },
   },
   { timestamps: true }
