@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const MAX_COMMENT_LENGTH = 2000;
 
-export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated }) {
+export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLogo, onClose, onCreated }) {
   const { user } = useAuth();
   const [rating, setRating] = useState("positive");
   const [comment, setComment] = useState("");
@@ -13,6 +13,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated 
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const selectedOrder = orders.find(o => o._id === orderId);
 
   useEffect(() => {
     if (!user || !sellerId) return;
@@ -82,7 +83,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <form
         onSubmit={submit}
-        className="bg-white rounded-lg p-6 w-full max-w-lg"
+        className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
         <h2 className="text-xl font-bold mb-4">Leave Seller Feedback</h2>
         {!user && (
@@ -94,6 +95,21 @@ export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated 
           <p className="mb-3 p-2 rounded bg-red-50 border border-red-300 text-red-700 text-sm">
             {error}
           </p>
+        )}
+
+        {/* Store header */}
+        {(storeName || storeLogo) && (
+          <div className="flex items-center gap-3 p-3 mb-4 bg-gray-50 rounded-lg border border-gray-200">
+            {storeLogo ? (
+              <img src={storeLogo} alt={storeName || "Store"} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">Logo</div>
+            )}
+            <div>
+              <div className="text-xs text-gray-500">Selling from</div>
+              <div className="font-semibold text-gray-900">{storeName || "Store"}</div>
+            </div>
+          </div>
         )}
 
         <label className="block text-sm font-medium mb-2">How was your transaction?</label>
@@ -138,7 +154,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated 
           <select
             value={orderId}
             onChange={(event) => setOrderId(event.target.value)}
-            className="w-full border rounded px-3 py-2 mb-4 bg-white"
+            className="w-full border rounded px-3 py-2 mb-3 bg-white"
             required
           >
             {orders.map((order) => (
@@ -150,6 +166,44 @@ export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated 
               </option>
             ))}
           </select>
+
+          {/* Items in the selected order */}
+          {selectedOrder?.items?.length > 0 && (
+            <div className="mb-4 border rounded-lg bg-gray-50 p-3 max-h-40 overflow-y-auto">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                Items in this order
+              </div>
+              <ul className="space-y-2">
+                {selectedOrder.items.map((item) => (
+                  <li key={item._id} className="flex items-center gap-3">
+                    {item.image ? (
+                      <img
+                        src={
+                          typeof item.image === "string" && item.image.startsWith("http")
+                            ? item.image
+                            : `http://localhost:5000${item.image}`
+                        }
+                        alt={item.title}
+                        className="w-10 h-10 object-cover rounded border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                        No image
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-800 truncate">
+                        {item.title}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Qty: {item.quantity}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         )}
 
         <label className="block text-sm font-medium mb-1">Tell us more (comment)</label>

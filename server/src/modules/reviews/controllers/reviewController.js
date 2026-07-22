@@ -651,16 +651,31 @@ exports.getBuyerDeliveredOrdersForSeller = async (req, res, next) => {
 
     const orderIds = orders.map(o => o._id);
 
-    const products = await Product.find({ sellerId }).select("_id").lean();
+    const products = await Product.find({ sellerId }).select("_id title images price").lean();
     const productIds = products.map(p => p._id);
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
     const eligibleItems = await OrderItem.find({
       orderId: { $in: orderIds },
       productId: { $in: productIds }
-    }).select("orderId").lean();
+    }).lean();
 
-    const eligibleOrderIds = eligibleItems.map(item => item.orderId.toString());
-    const uniqueEligibleOrderIds = [...new Set(eligibleOrderIds)];
+    const itemsByOrder = new Map();
+    for (const item of eligibleItems) {
+      const orderKey = item.orderId.toString();
+      if (!itemsByOrder.has(orderKey)) itemsByOrder.set(orderKey, []);
+      const product = productMap.get(item.productId.toString());
+      itemsByOrder.get(orderKey).push({
+        _id: item._id,
+        productId: item.productId,
+        title: product?.title || item.title || "Item",
+        image: product?.images?.[0] || item.image || "",
+        price: item.price || product?.price || 0,
+        quantity: item.quantity || 1,
+      });
+    }
+
+    const uniqueEligibleOrderIds = [...itemsByOrder.keys()];
 
     const existingFeedback = await SellerFeedback.find({
       orderId: { $in: uniqueEligibleOrderIds }
@@ -673,6 +688,7 @@ exports.getBuyerDeliveredOrdersForSeller = async (req, res, next) => {
         _id: o._id,
         orderNumber: o.orderNumber || o._id,
         deliveredDate: o.deliveredDate || o.paymentDate || o.updatedAt,
+        items: itemsByOrder.get(o._id.toString()) || [],
       }));
 
     res.json(awaitingFeedbackOrders);
@@ -770,6 +786,21 @@ exports.getMySellerFeedback = async (req, res, next) => {
       andClauses.push({ comment: searchRegex });
     }
 
+    if (req.query.period && req.query.period !== "all") {
+      const now = new Date();
+      const sinceDate = new Date(now);
+      if (req.query.period === "30d") {
+        sinceDate.setDate(now.getDate() - 30);
+      } else if (req.query.period === "6m") {
+        sinceDate.setMonth(now.getMonth() - 6);
+      } else if (req.query.period === "12m") {
+        sinceDate.setMonth(now.getMonth() - 12);
+      }
+      if (!Number.isNaN(sinceDate.getTime())) {
+        andClauses.push({ createdAt: { $gte: sinceDate } });
+      }
+    }
+
     if (andClauses.length > 0) {
       query.$and = andClauses;
     }
@@ -838,9 +869,13 @@ exports.respondToFeedback = async (req, res, next) => {
     if (validationError) return res.status(400).json({ message: validationError });
 
     const now = new Date();
+    const isEdit = Boolean(
+      feedback.sellerResponse?.message &&
+        feedback.sellerResponse.message.trim() !== "",
+    );
     feedback.sellerResponse = {
       message: req.body.message.trim(),
-      respondedAt: now,
+      respondedAt: isEdit ? feedback.sellerResponse.respondedAt : now,
       updatedAt: now
     };
     await feedback.save();

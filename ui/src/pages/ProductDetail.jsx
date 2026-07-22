@@ -89,6 +89,8 @@ export default function ProductDetail() {
         {modalOpen && user && (
           <LeaveReviewModal
             productId={id}
+            productName={product.title || product.name}
+            productImage={product.images?.[0] || product.image}
             onClose={() => setModalOpen(false)}
             onCreated={() => {
               setModalOpen(false);

@@ -37,6 +37,7 @@ export default function SellerFeedback() {
     rating: "",
     hasResponse: "",
     search: "",
+    period: "all",
   });
   const [responseModal, setResponseModal] = useState(null);
   const [reportModal, setReportModal] = useState(null);
@@ -224,6 +225,19 @@ export default function SellerFeedback() {
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">Time Period</label>
+            <select
+              value={filters.period}
+              onChange={(e) => handleFilterChange("period", e.target.value)}
+              className="w-full border rounded px-3 py-2 bg-white"
+            >
+              <option value="all">All Time</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="6m">Last 6 Months</option>
+              <option value="12m">Last 12 Months</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Search Comments</label>
             <input
               type="text"
@@ -310,7 +324,7 @@ export default function SellerFeedback() {
                       onClick={() => handleRespond(fb)}
                       className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-semibold"
                     >
-                      {hasResponse ? "Edit Response" : "Respond"}
+                      {hasResponse ? "Edit Reply" : "Reply"}
                     </button>
                     {fb.status === "published" && (
                       <button
@@ -377,8 +391,8 @@ export default function SellerFeedback() {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
             <h2 className="text-xl font-bold mb-4">
               {responseModal.feedback?.sellerResponse?.message
-                ? "Edit Response"
-                : "Respond to Feedback"}
+                ? "Edit Reply"
+                : "Reply to Feedback"}
             </h2>
             <div className="mb-4">
               <div className="text-sm text-gray-600 mb-2">Feedback comment:</div>

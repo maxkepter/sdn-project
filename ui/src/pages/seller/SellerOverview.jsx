@@ -120,18 +120,18 @@ export default function SellerOverview() {
             <h3 className="text-base font-bold text-gray-800">Feedback</h3>
             <Link to="/seller/feedback" className="text-xs text-blue-600 hover:underline">See details</Link>
           </div>
-          <div className="flex flex-col gap-3 py-1 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-green-600">🟢 Positive</span>
-              <span className="font-bold">{feedbackStats?.positiveCount ?? 0}</span>
+          <div className="flex flex-col gap-2 py-1 text-sm">
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-green-50 border border-green-200">
+              <span className="font-semibold text-green-700">Positive</span>
+              <span className="font-bold text-green-700">{feedbackStats?.positiveCount ?? 0}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-600">🟡 Neutral</span>
-              <span className="font-bold">{feedbackStats?.neutralCount ?? 0}</span>
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-yellow-50 border border-yellow-200">
+              <span className="font-semibold text-yellow-700">Neutral</span>
+              <span className="font-bold text-yellow-700">{feedbackStats?.neutralCount ?? 0}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-red-600">🔴 Negative</span>
-              <span className="font-bold">{feedbackStats?.negativeCount ?? 0}</span>
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-red-50 border border-red-200">
+              <span className="font-semibold text-red-700">Negative</span>
+              <span className="font-bold text-red-700">{feedbackStats?.negativeCount ?? 0}</span>
             </div>
             <div className="border-t pt-2 mt-1 flex justify-between items-center font-semibold">
               <span>Positive Rate</span>

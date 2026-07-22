@@ -399,7 +399,7 @@ export default function StoreFront() {
                       <div className="border rounded-xl p-6 bg-white flex flex-col justify-center items-center">
                         <span className="text-[13px] text-gray-500 uppercase tracking-wider font-semibold mb-2">Leave Feedback</span>
                         {user ? (
-                          user._id === storeData.sellerId ? (
+                          storeData?.sellerId && user._id === storeData.sellerId ? (
                             <span className="text-sm text-gray-400 italic">This is your store</span>
                           ) : (
                             <button
@@ -492,6 +492,8 @@ export default function StoreFront() {
       {isFeedbackModalOpen && storeData?.sellerId && (
         <LeaveSellerFeedbackModal
           sellerId={storeData.sellerId}
+          storeName={storeData.storeName}
+          storeLogo={storeData.logoUrl}
           onClose={() => setIsFeedbackModalOpen(false)}
           onCreated={() => {
             setIsFeedbackModalOpen(false);
