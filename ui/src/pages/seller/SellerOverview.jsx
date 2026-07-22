@@ -38,7 +38,7 @@ export default function SellerOverview() {
         <StatCard
           label="Sales (31 days)"
           value={stats ? `$${stats.totalRevenue.toFixed(2)}` : "-"}
-          link="/seller/orders"
+          link="/seller/reports"
         />
         <StatCard
           label="Seller level forecast"
@@ -76,7 +76,10 @@ export default function SellerOverview() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="text-base font-bold text-gray-800 mb-3">Sales</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-gray-800">Sales</h3>
+            <Link to="/seller/reports" className="text-xs text-blue-600 hover:underline">See reports</Link>
+          </div>
           <SalesChart orders={orders} />
         </div>
 

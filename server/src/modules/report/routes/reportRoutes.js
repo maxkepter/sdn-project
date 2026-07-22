@@ -10,4 +10,7 @@ router.use(auth, sellerCheck);
 // GET /api/v1/reports/sales
 router.get("/sales", ctrl.getSalesReport);
 
+// GET /api/v1/reports/sales.csv
+router.get("/sales.csv", ctrl.exportSalesReportCsv);
+
 module.exports = router;

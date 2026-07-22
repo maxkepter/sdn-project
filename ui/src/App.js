@@ -24,6 +24,7 @@ import SellerPerformance from "./pages/seller/SellerPerformance";
 import SellerPayments from "./pages/seller/SellerPayments";
 import SellerResearch from "./pages/seller/SellerResearch";
 import SellerReports from "./pages/seller/SellerReports";
+import SellerComplaints from "./pages/seller/SellerComplaints";
 import SellerReviews from "./pages/seller/SellerReviews";
 import SellerFeedback from "./pages/seller/SellerFeedback";
 import AutomateFeedback from "./pages/seller/AutomateFeedback";
@@ -74,6 +75,7 @@ function App() {
             <Route path="payments" element={<SellerPayments />} />
             <Route path="research" element={<SellerResearch />} />
             <Route path="reports" element={<SellerReports />} />
+            <Route path="complaints" element={<SellerComplaints />} />
           </Route>
           <Route
             path="/seller/product/new"

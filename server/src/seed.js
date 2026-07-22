@@ -12,6 +12,7 @@ const {
   OrderItem,
   Review,
   Feedback,
+  Dispute,
 } = require("./models");
 
 // ---- Fixture orders -------------------------------------------------------
@@ -193,7 +194,7 @@ async function seed() {
     await Promise.all([
       User.deleteMany({}), Category.deleteMany({}), Product.deleteMany({}),
       Inventory.deleteMany({}), Address.deleteMany({}), Order.deleteMany({}), OrderItem.deleteMany({}),
-      Review.deleteMany({}), Feedback.deleteMany({}),
+      Review.deleteMany({}), Feedback.deleteMany({}), Dispute.deleteMany({}),
     ]);
     console.log("Dropped all collections");
     await mongoose.disconnect();
@@ -211,6 +212,8 @@ async function seed() {
     Feedback.deleteMany({}),
   ]);
   console.log("Cleared orders, order items, inventory, reviews, and feedback");
+  await Dispute.deleteMany({});
+  console.log("Cleared disputes");
 
   for (const name of categoryNames) {
     await Category.findOneAndUpdate({ name }, { name }, { upsert: true, new: true });
@@ -535,6 +538,67 @@ async function seed() {
     await recalcFeedback(sId);
   }
   console.log(`Recalculated feedback for ${uniqueSellers.length} unique sellers`);
+
+  // Seed dispute fixtures (Phase 5)
+  console.log("Seeding dispute fixtures...");
+  const seededOrders = await Order.find().limit(8);
+  const sampleDisputes = [
+    {
+      status: "open",
+      description: "Package has not arrived yet, and tracking has not updated in 5 days.",
+      resolution: "",
+    },
+    {
+      status: "open",
+      description: "Received the wrong color of iPhone. I ordered Natural Titanium but received Black.",
+      resolution: "",
+    },
+    {
+      status: "open",
+      description: "The item was described as Brand New, but it came with visible scratches on the side.",
+      resolution: "",
+    },
+    {
+      status: "under_review",
+      description: "Device does not turn on. I tried charging it for 3 hours, still completely dead.",
+      resolution: "",
+    },
+    {
+      status: "under_review",
+      description: "Missing accessories. The box was opened and the charging cable was missing.",
+      resolution: "",
+    },
+    {
+      status: "resolved",
+      description: "Product box is damaged and vacuum cleaner smells like burnt plastic.",
+      resolution: "Sent a free replacement unit with express shipping. Tracking provided to the customer.",
+    },
+    {
+      status: "resolved",
+      description: "Wrong size of shoes delivered. I ordered US 10 but received US 9.",
+      resolution: "Issued a full refund of $499.00 to the buyer. Buyer keeps the items as goodwill.",
+    },
+    {
+      status: "rejected",
+      description: "Buyer claimed the item is fake, but serial number matches genuine Nike stock.",
+      resolution: "Dispute rejected. Seller provided official proof of purchase and certificate of authenticity.",
+    },
+  ];
+
+  let disputeCount = 0;
+  for (let k = 0; k < Math.min(seededOrders.length, sampleDisputes.length); k++) {
+    const order = seededOrders[k];
+    const template = sampleDisputes[k];
+    await Dispute.create({
+      orderId: order._id,
+      raisedBy: order.buyerId,
+      description: template.description,
+      status: template.status,
+      resolution: template.resolution,
+    });
+    disputeCount++;
+  }
+  console.log(`Seeded ${disputeCount} dispute fixtures`);
 
   console.log(`\nSeeded ${productsData.length} products successfully`);
   process.exit(0);

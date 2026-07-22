@@ -14,6 +14,7 @@ const tabs = [
   { label: "Payments", path: "/seller/payments" },
   { label: "Research", path: "/seller/research" },
   { label: "Reports", path: "/seller/reports" },
+  { label: "Complaints", path: "/seller/complaints" },
 ];
 
 export default function SellerHeader() {
