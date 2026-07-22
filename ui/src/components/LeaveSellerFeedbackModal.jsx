@@ -2,16 +2,12 @@ import React, { useEffect, useState } from "react";
 import apiClient from "../services/apiClient";
 import { useAuth } from "../hooks/useAuth";
 
-const MAX_COMMENT_LENGTH = 5000;
-const MAX_TITLE_LENGTH = 200;
-const MAX_PHOTOS = 5;
+const MAX_COMMENT_LENGTH = 2000;
 
-export default function LeaveReviewModal({ productId, onClose, onCreated }) {
+export default function LeaveSellerFeedbackModal({ sellerId, onClose, onCreated }) {
   const { user } = useAuth();
-  const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState("");
+  const [rating, setRating] = useState("positive");
   const [comment, setComment] = useState("");
-  const [photos, setPhotos] = useState([]);
   const [orderId, setOrderId] = useState("");
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -19,14 +15,14 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !sellerId) return;
     let cancelled = false;
     const loadOrders = async () => {
       setLoadingOrders(true);
       setError("");
       try {
         const response = await apiClient.get(
-          `/reviews/products/${productId}/delivered-orders`,
+          `/reviews/sellers/${sellerId}/delivered-orders`
         );
         if (cancelled) return;
         setOrders(response.data || []);
@@ -36,7 +32,7 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err.response?.data?.message || "Unable to load delivered orders",
+            err.response?.data?.message || "Unable to load delivered orders"
           );
         }
       } finally {
@@ -47,41 +43,29 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
     return () => {
       cancelled = true;
     };
-  }, [productId, user]);
-
-  const handlePhotosChange = (event) => {
-    const files = Array.from(event.target.files || []).slice(0, MAX_PHOTOS);
-    setPhotos(files);
-  };
+  }, [sellerId, user]);
 
   const submit = async (event) => {
     event.preventDefault();
     if (!user) {
-      setError("Login is required to leave a review.");
+      setError("Login is required to leave feedback.");
       return;
     }
     if (!orderId) {
-      setError("Please select the order this review is for.");
+      setError("Please select the order this feedback is for.");
       return;
     }
     try {
       setSubmitting(true);
       setError("");
-      const formData = new FormData();
-      formData.append("rating", rating);
-      formData.append("title", title);
-      formData.append("comment", comment);
-      formData.append("orderId", orderId);
-      photos.forEach((photo) => formData.append("photos", photo));
       const response = await apiClient.post(
-        `/reviews/products/${productId}/reviews`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
+        `/reviews/sellers/${sellerId}/feedback`,
+        { orderId, rating, comment }
       );
       onCreated?.(response.data);
       onClose?.();
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to submit review");
+      setError(err.response?.data?.message || "Unable to submit feedback");
     } finally {
       setSubmitting(false);
     }
@@ -100,10 +84,10 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
         onSubmit={submit}
         className="bg-white rounded-lg p-6 w-full max-w-lg"
       >
-        <h2 className="text-xl font-bold mb-4">Leave a Product Review</h2>
+        <h2 className="text-xl font-bold mb-4">Leave Seller Feedback</h2>
         {!user && (
           <p className="mb-3 p-2 rounded bg-yellow-50 border border-yellow-300 text-yellow-800 text-sm">
-            Please log in to submit a review.
+            Please log in to leave feedback.
           </p>
         )}
         {error && (
@@ -112,37 +96,49 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
           </p>
         )}
 
-        <label className="block text-sm font-medium mb-1">Your rating</label>
-        <div className="flex gap-1 mb-4">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button
-              type="button"
-              key={value}
-              onClick={() => setRating(value)}
-              className={
-                value <= rating
-                  ? "text-yellow-400 text-2xl"
-                  : "text-gray-300 text-2xl"
-              }
-              aria-label={`${value} star${value === 1 ? "" : "s"}`}
+        <label className="block text-sm font-medium mb-2">How was your transaction?</label>
+        <div className="flex gap-4 mb-4">
+          {[
+            { value: "positive", label: "Positive", color: "text-green-600 border-green-500 bg-green-50" },
+            { value: "neutral", label: "Neutral", color: "text-gray-600 border-gray-500 bg-gray-50" },
+            { value: "negative", label: "Negative", color: "text-red-600 border-red-500 bg-red-50" }
+          ].map((item) => (
+            <label
+              key={item.value}
+              className={`flex-1 flex flex-col items-center p-3 border rounded-lg cursor-pointer transition ${
+                rating === item.value
+                  ? `${item.color} font-bold ring-2 ring-blue-500`
+                  : "border-gray-200 hover:bg-gray-50"
+              }`}
             >
-              ★
-            </button>
+              <input
+                type="radio"
+                name="rating"
+                value={item.value}
+                checked={rating === item.value}
+                onChange={() => setRating(item.value)}
+                className="sr-only"
+              />
+              <span className="text-lg">
+                {item.value === "positive" ? "🟢" : item.value === "neutral" ? "🟡" : "🔴"}
+              </span>
+              <span className="text-sm mt-1">{item.label}</span>
+            </label>
           ))}
         </div>
 
-        <label className="block text-sm font-medium mb-1">Order</label>
+        <label className="block text-sm font-medium mb-1">Select Order</label>
         {loadingOrders ? (
           <p className="text-sm text-gray-500 mb-4">Loading orders...</p>
         ) : orders.length === 0 ? (
-          <p className="text-sm text-gray-500 mb-4">
-            You have no delivered orders for this product.
+          <p className="text-sm text-red-500 mb-4 font-semibold">
+            You have no delivered orders from this store that are eligible for feedback.
           </p>
         ) : (
           <select
             value={orderId}
             onChange={(event) => setOrderId(event.target.value)}
-            className="w-full border rounded px-3 py-2 mb-4"
+            className="w-full border rounded px-3 py-2 mb-4 bg-white"
             required
           >
             {orders.map((order) => (
@@ -156,18 +152,7 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
           </select>
         )}
 
-        <label className="block text-sm font-medium mb-1">Title</label>
-        <input
-          value={title}
-          onChange={(event) =>
-            setTitle(event.target.value.slice(0, MAX_TITLE_LENGTH))
-          }
-          maxLength={MAX_TITLE_LENGTH}
-          placeholder="Review title"
-          className="w-full border rounded px-3 py-2 mb-4"
-        />
-
-        <label className="block text-sm font-medium mb-1">Comment</label>
+        <label className="block text-sm font-medium mb-1">Tell us more (comment)</label>
         <textarea
           required
           value={comment}
@@ -175,44 +160,28 @@ export default function LeaveReviewModal({ productId, onClose, onCreated }) {
             setComment(event.target.value.slice(0, MAX_COMMENT_LENGTH))
           }
           maxLength={MAX_COMMENT_LENGTH}
-          rows={5}
-          placeholder="Share your experience"
-          className="w-full border rounded px-3 py-2 mb-4"
+          rows={4}
+          placeholder="Write a brief comment about your experience with this seller"
+          className="w-full border rounded px-3 py-2 mb-2"
         />
         <div className="text-xs text-gray-500 mb-4">
           {comment.length} / {MAX_COMMENT_LENGTH} characters
         </div>
 
-        <label className="block text-sm font-medium mb-1">
-          Photos (optional, max {MAX_PHOTOS})
-        </label>
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handlePhotosChange}
-          className="w-full border rounded px-3 py-2 mb-4"
-        />
-        {photos.length > 0 && (
-          <p className="text-xs text-gray-500 mb-4">
-            {photos.length} file{photos.length === 1 ? "" : "s"} selected
-          </p>
-        )}
-
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border rounded"
+            className="px-4 py-2 border rounded hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSubmit}
-            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700 font-semibold"
           >
-            {submitting ? "Submitting..." : "Submit"}
+            {submitting ? "Submitting..." : "Leave Feedback"}
           </button>
         </div>
       </form>

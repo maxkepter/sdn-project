@@ -16,6 +16,8 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [aboutMe, setAboutMe] = useState("");
   const [activeTab, setActiveTab] = useState("About");
+  const [feedbackStats, setFeedbackStats] = useState(null);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -25,11 +27,27 @@ export default function ProfilePage() {
       } catch (err) {
         console.error("Profile not found", err);
       } finally {
-        setLoading(false);
+        setLoading(false); // wait, let's look at the original code's variable. Original had: setLoading(false);
       }
     };
     fetchProfile();
   }, [username]);
+
+  useEffect(() => {
+    if (activeTab !== "Feedback" || !profile?._id) return;
+    const fetchFeedback = async () => {
+      setLoadingFeedback(true);
+      try {
+        const res = await apiClient.get(`/reviews/sellers/${profile._id}/feedback`);
+        setFeedbackStats(res.data);
+      } catch (err) {
+        console.error("Failed to load profile feedback stats", err);
+      } finally {
+        setLoadingFeedback(false);
+      }
+    };
+    fetchFeedback();
+  }, [activeTab, profile?._id]);
 
   if (loading) {
     return (
@@ -205,22 +223,38 @@ export default function ProfilePage() {
           {activeTab === "Feedback" && (
             <>
               <h2 className="text-xl font-bold mb-2">Feedback ratings</h2>
-              <p className="text-[13px] text-gray-500 mb-6">Last 12 months</p>
-              
-              <div className="flex items-center gap-16 text-[13px]">
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Positive</span>
-                  <span className="underline cursor-pointer">0</span>
+              <p className="text-[13px] text-gray-500 mb-6">Recent Statistics</p>
+
+              {loadingFeedback ? (
+                <p className="text-sm text-gray-500">Loading feedback ratings...</p>
+              ) : (
+                <div className="flex items-center gap-16 text-[13px]">
+                  <div className="flex flex-col gap-2">
+                    <span className="font-bold text-black">🟢 Positive</span>
+                    <span className="text-lg font-semibold text-green-600">
+                      {feedbackStats?.positiveCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="font-bold text-black">🟡 Neutral</span>
+                    <span className="text-lg font-semibold text-gray-600">
+                      {feedbackStats?.neutralCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="font-bold text-black">🔴 Negative</span>
+                    <span className="text-lg font-semibold text-red-600">
+                      {feedbackStats?.negativeCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2 ml-4 pl-4 border-l">
+                    <span className="font-bold text-black">Positive Rate</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      {feedbackStats?.positiveRate !== undefined ? `${feedbackStats.positiveRate}%` : "0%"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Neutral</span>
-                  <span className="underline cursor-pointer">0</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Negative</span>
-                  <span className="underline cursor-pointer">0</span>
-                </div>
-              </div>
+              )}
             </>
           )}
         </div>

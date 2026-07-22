@@ -53,10 +53,10 @@ export default function ShippedAwaitingFeedback() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <SellerHeader />
         <h1 className="text-3xl font-bold mt-6 mb-2">
-          Shipped, Awaiting Feedback
+          Delivered Orders Awaiting Seller Feedback
         </h1>
         <p className="text-gray-600 mb-6">
-          Delivered orders waiting for buyer reviews.
+          Delivered orders awaiting buyer feedback.
         </p>
 
         {error && (
@@ -90,7 +90,7 @@ export default function ShippedAwaitingFeedback() {
                       Delivered Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Has review
+                      Has feedback
                     </th>
                   </tr>
                 </thead>
@@ -107,13 +107,13 @@ export default function ShippedAwaitingFeedback() {
                         {formatDate(order.deliveredDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {order.hasReview ? (
+                        {order.hasFeedback ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                            Reviewed
+                            Feedback Left
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                            Awaiting
+                            Awaiting Feedback
                           </span>
                         )}
                       </td>
