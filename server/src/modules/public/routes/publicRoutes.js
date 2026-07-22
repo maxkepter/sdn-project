@@ -24,4 +24,18 @@ router.get("/products", async (req, res, next) => {
   }
 });
 
+router.get("/products/:id", async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate("sellerId", "username firstName lastName avatarURL")
+      .populate("categoryId", "name slug")
+      .lean();
+    if (!product || product.isHidden)
+      return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

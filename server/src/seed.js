@@ -2,7 +2,18 @@ const mongoose = require("mongoose");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
-const { User, Category, Product, Inventory, Address, Order, OrderItem } = require("./models");
+const {
+  User,
+  Category,
+  Product,
+  Inventory,
+  Address,
+  Order,
+  OrderItem,
+  Review,
+  Feedback,
+  Dispute,
+} = require("./models");
 
 // ---- Fixture orders -------------------------------------------------------
 const FIXTURE_STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled", "returned"];
@@ -183,6 +194,7 @@ async function seed() {
     await Promise.all([
       User.deleteMany({}), Category.deleteMany({}), Product.deleteMany({}),
       Inventory.deleteMany({}), Address.deleteMany({}), Order.deleteMany({}), OrderItem.deleteMany({}),
+      Review.deleteMany({}), Feedback.deleteMany({}), Dispute.deleteMany({}),
     ]);
     console.log("Dropped all collections");
     await mongoose.disconnect();
@@ -196,8 +208,12 @@ async function seed() {
     Order.deleteMany({}),
     OrderItem.deleteMany({}),
     Inventory.deleteMany({}),
+    Review.deleteMany({}),
+    Feedback.deleteMany({}),
   ]);
-  console.log("Cleared orders, order items, and inventory");
+  console.log("Cleared orders, order items, inventory, reviews, and feedback");
+  await Dispute.deleteMany({});
+  console.log("Cleared disputes");
 
   for (const name of categoryNames) {
     await Category.findOneAndUpdate({ name }, { name }, { upsert: true, new: true });
@@ -282,6 +298,8 @@ async function seed() {
 
   await Order.deleteMany({});
   await OrderItem.deleteMany({});
+  await Review.deleteMany({});
+  await Feedback.deleteMany({});
 
   const seededProducts = await Product.find({ sellerId: seller._id }).sort({ createdAt: 1 }).limit(5).lean();
 
@@ -474,6 +492,113 @@ async function seed() {
   } else {
     console.log("Skipped fixture orders: seller has no products");
   }
+
+  // Seed sample reviews from delivered orders
+  const { recalcFeedback } = require("./modules/reviews/controllers/reviewController");
+  const deliveredOrders = await Order.find({ status: "delivered" }).lean();
+  console.log(`Found ${deliveredOrders.length} delivered orders to generate reviews`);
+
+  const sampleReviewTexts = [
+    { rating: 5, comment: "Absolutely amazing product! Extremely fast shipping and high quality.", title: "Excellent!" },
+    { rating: 5, comment: "Great value for money. Highly recommend this seller.", title: "Superb product" },
+    { rating: 4, comment: "Decent product, arrived on time. Works as described.", title: "Good quality" },
+    { rating: 3, comment: "Average item. It gets the job done but nothing special.", title: "It's okay" },
+    { rating: 2, comment: "Not as good as expected. Item had minor cosmetic issues.", title: "A bit disappointed" },
+    { rating: 1, comment: "Terrible service. Product broke after first use. Avoid!", title: "Waste of money" }
+  ];
+
+  let reviewCount = 0;
+  for (let j = 0; j < Math.min(deliveredOrders.length, 10); j++) {
+    const order = deliveredOrders[j];
+    const item = await OrderItem.findOne({ orderId: order._id }).lean();
+    if (!item) continue;
+
+    const product = await Product.findById(item.productId).select("sellerId").lean();
+    if (!product) continue;
+
+    const text = sampleReviewTexts[j % sampleReviewTexts.length];
+
+    await Review.create({
+      productId: item.productId,
+      reviewerId: order.buyerId,
+      sellerId: product.sellerId,
+      orderId: order._id,
+      rating: text.rating,
+      title: text.title,
+      comment: text.comment,
+      verifiedPurchase: true,
+      reviewDate: new Date(order.orderDate.getTime() + 2 * 24 * 3600 * 1000) // 2 days after order
+    });
+    reviewCount++;
+  }
+  console.log(`Seeded ${reviewCount} sample reviews`);
+
+  const uniqueSellers = await Review.distinct("sellerId");
+  for (const sId of uniqueSellers) {
+    await recalcFeedback(sId);
+  }
+  console.log(`Recalculated feedback for ${uniqueSellers.length} unique sellers`);
+
+  // Seed dispute fixtures (Phase 5)
+  console.log("Seeding dispute fixtures...");
+  const seededOrders = await Order.find().limit(8);
+  const sampleDisputes = [
+    {
+      status: "open",
+      description: "Package has not arrived yet, and tracking has not updated in 5 days.",
+      resolution: "",
+    },
+    {
+      status: "open",
+      description: "Received the wrong color of iPhone. I ordered Natural Titanium but received Black.",
+      resolution: "",
+    },
+    {
+      status: "open",
+      description: "The item was described as Brand New, but it came with visible scratches on the side.",
+      resolution: "",
+    },
+    {
+      status: "under_review",
+      description: "Device does not turn on. I tried charging it for 3 hours, still completely dead.",
+      resolution: "",
+    },
+    {
+      status: "under_review",
+      description: "Missing accessories. The box was opened and the charging cable was missing.",
+      resolution: "",
+    },
+    {
+      status: "resolved",
+      description: "Product box is damaged and vacuum cleaner smells like burnt plastic.",
+      resolution: "Sent a free replacement unit with express shipping. Tracking provided to the customer.",
+    },
+    {
+      status: "resolved",
+      description: "Wrong size of shoes delivered. I ordered US 10 but received US 9.",
+      resolution: "Issued a full refund of $499.00 to the buyer. Buyer keeps the items as goodwill.",
+    },
+    {
+      status: "rejected",
+      description: "Buyer claimed the item is fake, but serial number matches genuine Nike stock.",
+      resolution: "Dispute rejected. Seller provided official proof of purchase and certificate of authenticity.",
+    },
+  ];
+
+  let disputeCount = 0;
+  for (let k = 0; k < Math.min(seededOrders.length, sampleDisputes.length); k++) {
+    const order = seededOrders[k];
+    const template = sampleDisputes[k];
+    await Dispute.create({
+      orderId: order._id,
+      raisedBy: order.buyerId,
+      description: template.description,
+      status: template.status,
+      resolution: template.resolution,
+    });
+    disputeCount++;
+  }
+  console.log(`Seeded ${disputeCount} dispute fixtures`);
 
   console.log(`\nSeeded ${productsData.length} products successfully`);
   process.exit(0);

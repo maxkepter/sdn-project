@@ -268,6 +268,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     if (status === "delivered") {
       order.paymentStatus = "paid";
       if (!order.paymentDate) order.paymentDate = new Date();
+      if (!order.deliveredDate) order.deliveredDate = new Date();
     }
     if (status === "shipped" && order.tracking && !order.tracking.shippedDate) {
       order.tracking.shippedDate = new Date();

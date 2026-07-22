@@ -18,12 +18,17 @@ import SellerOverview from "./pages/seller/SellerOverview";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerListings from "./pages/seller/SellerListings";
 import SellerMarketing from "./pages/seller/SellerMarketing";
-import SellerStore from './pages/seller/SellerStore';
-import SellerStoreCategories from './pages/seller/SellerStoreCategories';
-import SellerPerformance from './pages/seller/SellerPerformance';
+import SellerStore from "./pages/seller/SellerStore";
+import SellerStoreCategories from "./pages/seller/SellerStoreCategories";
+import SellerPerformance from "./pages/seller/SellerPerformance";
 import SellerPayments from "./pages/seller/SellerPayments";
 import SellerResearch from "./pages/seller/SellerResearch";
 import SellerReports from "./pages/seller/SellerReports";
+import SellerComplaints from "./pages/seller/SellerComplaints";
+import SellerReviews from "./pages/seller/SellerReviews";
+import SellerFeedback from "./pages/seller/SellerFeedback";
+import AutomateFeedback from "./pages/seller/AutomateFeedback";
+import ShippedAwaitingFeedback from "./pages/seller/ShippedAwaitingFeedback";
 import ProductForm from "./pages/seller/ProductForm";
 import ListingPage from "./pages/ListingPage";
 import SellPage from "./pages/SellPage";
@@ -65,9 +70,12 @@ function App() {
             <Route path="store" element={<SellerStore />} />
             <Route path="storecategories" element={<SellerStoreCategories />} />
             <Route path="performance" element={<SellerPerformance />} />
+            <Route path="feedback" element={<SellerFeedback />} />
+            <Route path="reviews" element={<SellerReviews />} />
             <Route path="payments" element={<SellerPayments />} />
             <Route path="research" element={<SellerResearch />} />
             <Route path="reports" element={<SellerReports />} />
+            <Route path="complaints" element={<SellerComplaints />} />
           </Route>
           <Route
             path="/seller/product/new"
@@ -82,6 +90,22 @@ function App() {
             element={
               <PrivateRoute>
                 <ProductForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/automate-feedback"
+            element={
+              <PrivateRoute>
+                <AutomateFeedback />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/seller/orders/shipped-awaiting-feedback"
+            element={
+              <PrivateRoute>
+                <ShippedAwaitingFeedback />
               </PrivateRoute>
             }
           />
