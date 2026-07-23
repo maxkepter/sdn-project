@@ -15,6 +15,16 @@ const {
   Dispute,
 } = require("./models");
 
+// Spread seeded createdAt timestamps evenly across the last 90 days so
+// dashboard time-series charts have a realistic distribution instead of a
+// single spike. Deterministic on idx so re-running the seed produces a
+// stable dataset (useful for diffing screenshots during load testing).
+function randomCreatedAt(idx) {
+  const slot = Math.floor((idx * 7919) % 90); // prime stride -> good spread
+  const jitter = (idx * 31) % (24 * 60 * 60 * 1000);
+  return new Date(Date.now() - slot * 24 * 60 * 60 * 1000 - jitter);
+}
+
 // ---- Fixture orders -------------------------------------------------------
 const FIXTURE_STATUSES = [
   "pending",
@@ -691,6 +701,7 @@ async function seed() {
       condition: "New",
       isHidden: false,
       sku: `SKU-${String(idx + 1).padStart(4, "0")}`,
+      createdAt: randomCreatedAt(idx),
     });
 
     await Inventory.create({
@@ -699,6 +710,110 @@ async function seed() {
     });
 
     console.log(`  Created: ${p.title} ($${p.price})`);
+  }
+
+  // ---- Bulk-fill to reach 300 products ----------------------------------
+  // Goal: stretch the seed up to TOTAL_PRODUCTS so the dashboard has a
+  // realistic dataset to exercise pagination, charts, and filters.
+  // We generate variants of the curated anchors above: different colors,
+  // sizes, editions, conditions, and price points, spread across the last
+  // 90 days so time-series views on the dashboard have meaningful data.
+  const TOTAL_PRODUCTS = 300;
+  const existingCount = await Product.countDocuments();
+  if (existingCount < TOTAL_PRODUCTS) {
+    const needed = TOTAL_PRODUCTS - existingCount;
+    console.log(
+      `Bulk-filling ${needed} variant products to reach ${TOTAL_PRODUCTS} total...`,
+    );
+
+    const VARIANT_COLORS = [
+      "Midnight Black",
+      "Pearl White",
+      "Silver",
+      "Space Gray",
+      "Rose Gold",
+      "Champagne",
+      "Navy Blue",
+      "Forest Green",
+      "Burgundy",
+      "Sand Beige",
+    ];
+    const VARIANT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+    const VARIANT_EDITIONS = [
+      "Standard Edition",
+      "Limited Edition",
+      "Pro",
+      "Pro Max",
+      "Ultra",
+      "Lite",
+      "Plus",
+      "Signature Series",
+      "Anniversary Edition",
+      "Classic",
+    ];
+    const VARIANT_CONDITIONS = ["New", "Like New", "Excellent", "Good"];
+
+    const bulkDocs = [];
+    const bulkInventory = [];
+    for (let i = 0; i < needed; i++) {
+      const anchor = productsData[i % productsData.length];
+      const catId = catMap[anchor.cat];
+      if (!catId) continue;
+
+      // Cycle through different variant axes for each anchor iteration so
+      // titles/sku/condition don't repeat.
+      const variantIndex = Math.floor(i / productsData.length) + 1;
+      const color = VARIANT_COLORS[i % VARIANT_COLORS.length];
+      const size = VARIANT_SIZES[i % VARIANT_SIZES.length];
+      const edition = VARIANT_EDITIONS[variantIndex % VARIANT_EDITIONS.length];
+      const condition =
+        VARIANT_CONDITIONS[i % VARIANT_CONDITIONS.length];
+
+      // Vary the price by ±25% to give dashboard price-distribution charts
+      // real spread (avoiding a flat histogram).
+      const priceJitter = 1 + ((i * 37) % 50 - 25) / 100;
+      const variantPrice = Math.max(
+        9,
+        Math.round(anchor.price * priceJitter),
+      );
+
+      const variantTitle = `${anchor.title} — ${edition} / ${color} / ${size}`;
+      const sku = `SKU-${String(existingCount + i + 1).padStart(4, "0")}`;
+      const description =
+        descriptions[(i + existingCount) % descriptions.length] +
+        ` Variant #${variantIndex}. Color: ${color}. Size: ${size}. Edition: ${edition}.`;
+
+      // Use the anchor's first image as the variant's cover so the dashboard
+      // has something to render without depending on a per-variant asset.
+      const variantImages = anchor.images;
+
+      bulkDocs.push({
+        title: variantTitle,
+        description,
+        price: variantPrice,
+        images: variantImages,
+        categoryId: catId,
+        sellerId: seller._id,
+        condition,
+        isHidden: false,
+        sku,
+        createdAt: randomCreatedAt(existingCount + i),
+      });
+      bulkInventory.push({
+        productId: null, // filled after insert
+        quantity: Math.floor(Math.random() * 80) + 1,
+      });
+    }
+
+    // insertMany is significantly faster than looping Product.create here.
+    const inserted = await Product.insertMany(bulkDocs, { ordered: false });
+    for (let k = 0; k < inserted.length; k++) {
+      bulkInventory[k].productId = inserted[k]._id;
+    }
+    await Inventory.insertMany(bulkInventory, { ordered: false });
+    console.log(
+      `Bulk-seeded ${inserted.length} variant products (total now ${existingCount + inserted.length})`,
+    );
   }
 
   // ---- Buyer user ---------------------------------------------------------

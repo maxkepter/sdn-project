@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../services/apiClient";
 import { useAuth } from "../hooks/useAuth";
+import { resolveImageUrl } from "../utils/image";
 
 const MAX_COMMENT_LENGTH = 2000;
 
@@ -107,11 +108,7 @@ export default function LeaveSellerFeedbackModal({
         {(storeName || storeLogo) && (
           <div className="flex items-center gap-3 p-3 mb-4 bg-gray-50 rounded-lg border border-gray-200">
             {storeLogo ? (
-              <img
-                src={storeLogo}
-                alt={storeName || "Store"}
-                className="w-12 h-12 rounded-full object-cover border border-gray-200"
-              />
+              <img src={resolveImageUrl(storeLogo)} alt={storeName || "Store"} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
             ) : (
               <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
                 Logo
@@ -211,12 +208,7 @@ export default function LeaveSellerFeedbackModal({
                     <li key={item._id} className="flex items-center gap-3">
                       {item.image ? (
                         <img
-                          src={
-                            typeof item.image === "string" &&
-                            item.image.startsWith("http")
-                              ? item.image
-                              : `http://localhost:5000${item.image}`
-                          }
+                          src={resolveImageUrl(item.image) || "https://placehold.co/40x40?text=No+Image"}
                           alt={item.title}
                           className="w-10 h-10 object-cover rounded border border-gray-200"
                         />

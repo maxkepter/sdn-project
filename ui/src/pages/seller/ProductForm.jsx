@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import apiClient from "../../services/apiClient";
+import { resolveImageUrl } from "../../utils/image";
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -265,7 +266,7 @@ export default function ProductForm() {
                   {existingImages.map((img, i) => (
                     <div key={i} className="relative group">
                       <img
-                        src={`http://localhost:5000${img}`}
+                        src={resolveImageUrl(img) || "https://placehold.co/80x80?text=Image"}
                         alt=""
                         className="w-20 h-20 object-cover rounded border"
                       />

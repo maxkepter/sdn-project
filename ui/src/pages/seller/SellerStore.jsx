@@ -3,12 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { BsInfoCircleFill, BsPencil, BsArrowLeft, BsArrowRight, BsTrash, BsGripVertical, BsSearch, BsX, BsCamera } from "react-icons/bs";
 import { FiPlus } from "react-icons/fi";
 import apiClient from "../../services/apiClient";
+import { resolveImageUrl, API_BASE_URL } from "../../utils/image";
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-const resolveImageUrl = (img) => {
-  if (!img) return "";
-  return img.startsWith("http") ? img : `${API_BASE}${img}`;
-};
+const API_BASE = API_BASE_URL;
 
 export default function SellerStore() {
   const navigate = useNavigate();
@@ -357,7 +354,7 @@ export default function SellerStore() {
             className="bg-white rounded-lg border border-dashed border-gray-300 h-64 flex flex-col items-center justify-center text-center hover:bg-gray-50 cursor-pointer transition-colors shadow-sm mb-6 relative overflow-hidden"
           >
             {storeDraft.bannerImageURL ? (
-              <img src={storeDraft.bannerImageURL} alt="Banner" className="w-full h-full object-cover" />
+              <img src={resolveImageUrl(storeDraft.bannerImageURL)} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <>
                 <FiPlus size={24} className="text-[#3665f3] mb-2" />
@@ -380,7 +377,7 @@ export default function SellerStore() {
               className="bg-white rounded-lg border border-dashed border-gray-300 w-32 h-32 flex flex-col items-center justify-center text-center hover:bg-gray-50 cursor-pointer transition-colors shadow-sm flex-shrink-0 relative overflow-hidden"
             >
               {storeDraft.logoUrl ? (
-                <img src={storeDraft.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(storeDraft.logoUrl)} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <>
                   <FiPlus size={20} className="text-[#3665f3] mb-1" />
@@ -518,7 +515,7 @@ export default function SellerStore() {
                         >
                           {cat.imageUrl ? (
                             <div className="w-full h-full relative group/img">
-                              <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(cat.imageUrl)} alt={cat.name} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
                                 <BsCamera size={24} className="text-white" />
                               </div>
@@ -778,7 +775,7 @@ export default function SellerStore() {
                     >
                       {storeDraft.storyImageUrl ? (
                         <div className="w-full h-full relative">
-                          <img src={storeDraft.storyImageUrl} alt="Story" className="w-full h-full object-cover" />
+                          <img src={resolveImageUrl(storeDraft.storyImageUrl)} alt="Story" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2">
                             <BsCamera size={28} />
                             <span className="text-[13px] font-medium">Change image</span>

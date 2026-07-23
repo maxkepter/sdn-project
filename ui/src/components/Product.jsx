@@ -1,11 +1,8 @@
 import { Link } from "react-router-dom";
+import { resolveImageUrl } from "../utils/image";
 
 export default function Product({ product }) {
-  const imgSrc = product?.images?.[0]
-    ? product.images[0].startsWith("http")
-      ? product.images[0]
-      : `http://localhost:5000${product.images[0]}`
-    : "https://placehold.co/300x300?text=No+Image";
+  const imgSrc = resolveImageUrl(product?.images?.[0]) || "https://placehold.co/300x300?text=No+Image";
 
   return (
     <Link

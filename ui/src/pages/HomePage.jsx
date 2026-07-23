@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
 import Product from "../components/Product";
+import apiClient from "../services/apiClient";
 
 const categories = [
   { name: "Electronics", img: "https://i.ebayimg.com/images/g/5V4AAOSw5cRkd~1C/s-l500.webp", color: "bg-blue-100" },
@@ -26,10 +27,13 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/v1/categories/products")
-      .then((r) => r.json())
-      .then((data) => {
-        setProducts(data);
+    // Use the shared apiClient so the baseURL handling is identical to
+    // the rest of the app (and so we never accidentally build a
+    // file:///... URL when the bundle is opened outside a web server).
+    apiClient
+      .get("/categories/products")
+      .then((res) => {
+        setProducts(res.data);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));

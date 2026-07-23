@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../services/apiClient";
 import { useAuth } from "../hooks/useAuth";
+import { resolveImageUrl } from "../utils/image";
 
 const MAX_COMMENT_LENGTH = 5000;
 const MAX_TITLE_LENGTH = 200;
@@ -132,11 +133,7 @@ export default function LeaveReviewModal({ productId, productName, productImage,
           <div className="flex items-center gap-3 p-3 mb-4 bg-gray-50 rounded-lg border border-gray-200">
             {productImage ? (
               <img
-                src={
-                  typeof productImage === "string" && productImage.startsWith("http")
-                    ? productImage
-                    : `http://localhost:5000${productImage}`
-                }
+                src={resolveImageUrl(productImage) || "https://placehold.co/48x48?text=No+Image"}
                 alt={productName || "Product"}
                 className="w-12 h-12 object-cover rounded border border-gray-200"
               />
