@@ -1,27 +1,3 @@
-# MongoDB StatefulSet (1 replica cho MVP, mở rộng được lên 3-replica với replSet rs0)
-# Headless Service giúp các pod backend kết nối qua DNS:
-#   mongo-0.mongo-headless.sdn.svc.cluster.local:27017
-# Volume dùng volumeClaimTemplates -> tự động tạo PVC cho từng pod Mongo.
-
-# ---- Headless Service -------------------------------------------------------
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongo-headless
-  namespace: sdn
-  labels:
-    app.kubernetes.io/name: sdn-project
-    app.kubernetes.io/component: mongodb
-spec:
-  clusterIP: None
-  selector:
-    app: mongo
-  ports:
-    - port: 27017
-      targetPort: 27017
-      name: mongo
-
-# ---- StatefulSet ------------------------------------------------------------
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -46,11 +22,8 @@ spec:
       containers:
         - name: mongo
           image: mongo:7
-          args:
-            - "--bind_ip_all"
-            # Bật replSet để dễ mở rộng replica về sau (chỉ 1 node hiện tại vẫn hoạt động)
-            - "--replSet"
-            - "rs0"
+          # Standalone mode — không cần rs.initiate()
+          # Khi cần HA, thêm lại: args: ["--replSet","rs0"] rồi initiate
           ports:
             - name: mongo
               containerPort: 27017
