@@ -151,59 +151,61 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
             You have no delivered orders from this store that are eligible for feedback.
           </p>
         ) : (
-          <select
-            value={orderId}
-            onChange={(event) => setOrderId(event.target.value)}
-            className="w-full border rounded px-3 py-2 mb-3 bg-white"
-            required
-          >
-            {orders.map((order) => (
-              <option key={order._id} value={order._id}>
-                {order.orderNumber || order._id} —{" "}
-                {order.deliveredDate
-                  ? new Date(order.deliveredDate).toLocaleDateString()
-                  : "Delivered"}
-              </option>
-            ))}
-          </select>
+          <>
+            <select
+              value={orderId}
+              onChange={(event) => setOrderId(event.target.value)}
+              className="w-full border rounded px-3 py-2 mb-3 bg-white"
+              required
+            >
+              {orders.map((order) => (
+                <option key={order._id} value={order._id}>
+                  {order.orderNumber || order._id} —{" "}
+                  {order.deliveredDate
+                    ? new Date(order.deliveredDate).toLocaleDateString()
+                    : "Delivered"}
+                </option>
+              ))}
+            </select>
 
-          {/* Items in the selected order */}
-          {selectedOrder?.items?.length > 0 && (
-            <div className="mb-4 border rounded-lg bg-gray-50 p-3 max-h-40 overflow-y-auto">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Items in this order
+            {/* Items in the selected order */}
+            {selectedOrder?.items?.length > 0 && (
+              <div className="mb-4 border rounded-lg bg-gray-50 p-3 max-h-40 overflow-y-auto">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Items in this order
+                </div>
+                <ul className="space-y-2">
+                  {selectedOrder.items.map((item) => (
+                    <li key={item._id} className="flex items-center gap-3">
+                      {item.image ? (
+                        <img
+                          src={
+                            typeof item.image === "string" && item.image.startsWith("http")
+                              ? item.image
+                              : `http://localhost:5000${item.image}`
+                          }
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                          No image
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {item.title}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Qty: {item.quantity}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-2">
-                {selectedOrder.items.map((item) => (
-                  <li key={item._id} className="flex items-center gap-3">
-                    {item.image ? (
-                      <img
-                        src={
-                          typeof item.image === "string" && item.image.startsWith("http")
-                            ? item.image
-                            : `http://localhost:5000${item.image}`
-                        }
-                        alt={item.title}
-                        className="w-10 h-10 object-cover rounded border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                        No image
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-800 truncate">
-                        {item.title}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Qty: {item.quantity}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            )}
+          </>
         )}
 
         <label className="block text-sm font-medium mb-1">Tell us more (comment)</label>
