@@ -258,3 +258,25 @@ Sẽ xoá toàn bộ resource trong namespace `sdn` (hỏi xác nhận).
 - **Logging**: cài EFK stack (Elasticsearch, Fluentd, Kibana) hoặc Loki.
 - **CI/CD**: đẩy images lên registry thật (Docker Hub, GHCR, ECR...) rồi dùng ArgoCD/Flux.
 - **Secrets**: chuyển sang External Secrets Operator + AWS Secrets Manager / Vault.
+
+---
+
+## 13. Công cụ CLI tương tác: K9s (Khuyến nghị)
+
+Nếu bạn muốn có một giao diện Terminal cực kỳ chuyên nghiệp và tương tác mạnh mẽ để điều khiển, debug cụm Kubernetes, hãy sử dụng **K9s**:
+
+1. **Cài đặt**:
+   - **Windows (Chocolatey)**: `choco install k9s`
+   - **Windows (Scoop)**: `scoop install k9s`
+   - **macOS (Homebrew)**: `brew install k9s`
+2. **Sử dụng**:
+   - Gõ lệnh: `k9s`
+   - Gõ `:pods` để xem danh sách pods. Dùng mũi tên lên xuống để di chuyển.
+   - Nhấn `d` để xem chi tiết pod (Describe).
+   - Nhấn `l` để xem log của pod đó thời gian thực.
+   - Nhấn `s` để shell trực tiếp vào pod (tương đương `kubectl exec -it`).
+   - Nhấn `Esc` để quay lại.
+   - Gõ `:hpa` để xem cấu hình tự động co giãn.
+   - Gõ `:ingress` để xem Load Balancer routing.
+   - Gõ `:pvc` để xem đĩa lưu trữ.
+   - Gõ `:namespace` và chọn `sdn` để lọc riêng các tài nguyên của hệ thống.
