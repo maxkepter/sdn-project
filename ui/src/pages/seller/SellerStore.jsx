@@ -4,6 +4,12 @@ import { BsInfoCircleFill, BsPencil, BsArrowLeft, BsArrowRight, BsTrash, BsGripV
 import { FiPlus } from "react-icons/fi";
 import apiClient from "../../services/apiClient";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const resolveImageUrl = (img) => {
+  if (!img) return "";
+  return img.startsWith("http") ? img : `${API_BASE}${img}`;
+};
+
 export default function SellerStore() {
   const navigate = useNavigate();
   const [storeDraft, setStoreDraft] = useState({
@@ -27,6 +33,7 @@ export default function SellerStore() {
   const [activeTab, setActiveTab] = useState("Stage your store");
   const [storeCategories, setStoreCategories] = useState([]);
   const [sellerListings, setSellerListings] = useState([]);
+  const [showAllListings, setShowAllListings] = useState(false);
   const [descError, setDescError] = useState("");
 
   // Modal State
@@ -113,7 +120,7 @@ export default function SellerStore() {
         headers: { "Content-Type": "multipart/form-data" }
       });
       if (res.data.success) {
-        const fullUrl = `http://localhost:5000${res.data.url}`;
+        const fullUrl = res.data.url.startsWith("http") ? res.data.url : `${API_BASE}${res.data.url}`;
         updateDraft(type === "logo" ? { logoUrl: fullUrl } : { bannerImageURL: fullUrl });
       }
     } catch (err) {
@@ -139,7 +146,7 @@ export default function SellerStore() {
         headers: { "Content-Type": "multipart/form-data" }
       });
       if (res.data.success) {
-        const fullUrl = `http://localhost:5000${res.data.url}`;
+        const fullUrl = res.data.url.startsWith("http") ? res.data.url : `${API_BASE}${res.data.url}`;
         let _featured = [...(storeDraft.featuredCategories || [])];
         _featured[uploadingCategoryIndex].imageUrl = fullUrl;
         updateDraft({ featuredCategories: _featured });
@@ -169,7 +176,7 @@ export default function SellerStore() {
         headers: { "Content-Type": "multipart/form-data" }
       });
       if (res.data.success) {
-        const fullUrl = `http://localhost:5000${res.data.url}`;
+        const fullUrl = res.data.url.startsWith("http") ? res.data.url : `${API_BASE}${res.data.url}`;
         updateDraft({ storyImageUrl: fullUrl });
       }
     } catch (err) {
@@ -579,7 +586,15 @@ export default function SellerStore() {
                         <div key={listing._id} className="border border-gray-200 rounded-lg p-3 bg-white">
                           <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden flex items-center justify-center">
                             {listing.images && listing.images.length > 0 ? (
-                              <img src={`http://localhost:5000${listing.images[0]}`} alt={listing.title} className="object-cover w-full h-full" />
+                              <img
+                  src={resolveImageUrl(listing.images[0])}
+                  alt={listing.title}
+                  className="object-cover w-full h-full bg-gray-100"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "https://placehold.co/300x300?text=No+Image";
+                  }}
+                />
                             ) : (
                               <span className="text-gray-400 text-xs">No image</span>
                             )}
@@ -618,11 +633,19 @@ export default function SellerStore() {
                 
                 {sellerListings.length > 0 ? (
                   <div className="grid grid-cols-5 gap-4">
-                    {sellerListings.slice(0, 10).map(listing => (
+                    {(showAllListings ? sellerListings : sellerListings.slice(0, 10)).map(listing => (
                       <div key={listing._id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
                         <div className="aspect-square bg-gray-100 rounded-md mb-2 overflow-hidden flex items-center justify-center">
                           {listing.images && listing.images.length > 0 ? (
-                            <img src={`http://localhost:5000${listing.images[0]}`} alt={listing.title} className="object-cover w-full h-full" />
+                            <img
+                  src={resolveImageUrl(listing.images[0])}
+                  alt={listing.title}
+                  className="object-cover w-full h-full bg-gray-100"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "https://placehold.co/300x300?text=No+Image";
+                  }}
+                />
                           ) : (
                             <span className="text-gray-400 text-xs">No image</span>
                           )}
@@ -640,7 +663,14 @@ export default function SellerStore() {
                 )}
                 {sellerListings.length > 10 && (
                   <div className="mt-4 text-center">
-                    <span className="text-[13px] text-[#3665f3] hover:underline cursor-pointer font-bold">See all {sellerListings.length} listings</span>
+                    <button
+                      onClick={() => setShowAllListings((prev) => !prev)}
+                      className="text-[13px] text-[#3665f3] hover:underline cursor-pointer font-bold bg-transparent border-none p-0"
+                    >
+                      {showAllListings
+                        ? "Show less"
+                        : `See all ${sellerListings.length} listings`}
+                    </button>
                   </div>
                 )}
               </div>

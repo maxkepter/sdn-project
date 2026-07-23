@@ -6,6 +6,12 @@ import MainLayout from "../../layout/MainLayout";
 import { useAuth } from "../../hooks/useAuth";
 import LeaveSellerFeedbackModal from "../../components/LeaveSellerFeedbackModal";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const resolveImageUrl = (img) => {
+  if (!img) return "";
+  return img.startsWith("http") ? img : `${API_BASE}${img}`;
+};
+
 export default function StoreFront() {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -99,7 +105,15 @@ export default function StoreFront() {
         <div className="w-full bg-gray-100 flex justify-center">
           <div className="w-full max-w-[1200px] h-[270px] bg-white overflow-hidden">
             {storeData.bannerImageURL ? (
-              <img src={storeData.bannerImageURL} alt="Store Banner" className="w-full h-full object-cover" />
+              <img
+                src={resolveImageUrl(storeData.bannerImageURL)}
+                alt="Store Banner"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "https://placehold.co/1200x270?text=Banner+Error";
+                }}
+              />
             ) : (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                 <span className="text-gray-500">No Banner</span>
@@ -114,7 +128,7 @@ export default function StoreFront() {
             {/* Logo */}
             <div className="w-[120px] h-[120px] bg-white border border-gray-200 flex-shrink-0">
               {storeData.logoUrl ? (
-                <img src={storeData.logoUrl} alt="Store Logo" className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(storeData.logoUrl)} alt="Store Logo" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">Logo</div>
               )}
@@ -243,7 +257,7 @@ export default function StoreFront() {
                         >
                           <div className="w-full aspect-square bg-[#f5f5f5] rounded-xl overflow-hidden mb-3">
                             {cat.imageUrl ? (
-                              <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <img src={resolveImageUrl(cat.imageUrl)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
                             )}
@@ -266,7 +280,15 @@ export default function StoreFront() {
                         <Link to={`/products/${item._id}`} key={item._id} className="group cursor-pointer flex flex-col">
                           <div className="w-full aspect-square bg-[#f5f5f5] rounded-xl flex items-center justify-center overflow-hidden mb-3">
                             {item.images && item.images.length > 0 ? (
-                              <img src={`http://localhost:5000${item.images[0]}`} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <img
+                              src={resolveImageUrl(item.images[0])}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = "https://placehold.co/300x300?text=No+Image";
+                              }}
+                            />
                             ) : (
                               <span className="text-gray-400 text-sm">No image</span>
                             )}
@@ -306,7 +328,15 @@ export default function StoreFront() {
                       <Link to={`/products/${item._id}`} key={item._id} className="group cursor-pointer flex flex-col">
                         <div className="w-full aspect-square bg-[#f5f5f5] rounded-xl flex items-center justify-center overflow-hidden mb-3">
                           {item.images && item.images.length > 0 ? (
-                            <img src={`http://localhost:5000${item.images[0]}`} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img
+                              src={resolveImageUrl(item.images[0])}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = "https://placehold.co/300x300?text=No+Image";
+                              }}
+                            />
                           ) : (
                             <span className="text-gray-400 text-sm">No image</span>
                           )}
@@ -339,7 +369,7 @@ export default function StoreFront() {
                     </div>
                     {storeData.storyImageUrl && (
                       <div className="md:w-1/2 rounded-xl overflow-hidden bg-gray-100 max-h-[350px]">
-                        <img src={storeData.storyImageUrl} alt="Store Story" className="w-full h-full object-cover" />
+                        <img src={resolveImageUrl(storeData.storyImageUrl)} alt="Store Story" className="w-full h-full object-cover" />
                       </div>
                     )}
                   </div>
