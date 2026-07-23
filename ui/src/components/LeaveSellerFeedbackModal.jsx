@@ -4,7 +4,13 @@ import { useAuth } from "../hooks/useAuth";
 
 const MAX_COMMENT_LENGTH = 2000;
 
-export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLogo, onClose, onCreated }) {
+export default function LeaveSellerFeedbackModal({
+  sellerId,
+  storeName,
+  storeLogo,
+  onClose,
+  onCreated,
+}) {
   const { user } = useAuth();
   const [rating, setRating] = useState("positive");
   const [comment, setComment] = useState("");
@@ -13,7 +19,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const selectedOrder = orders.find(o => o._id === orderId);
+  const selectedOrder = orders.find((o) => o._id === orderId);
 
   useEffect(() => {
     if (!user || !sellerId) return;
@@ -23,7 +29,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
       setError("");
       try {
         const response = await apiClient.get(
-          `/reviews/sellers/${sellerId}/delivered-orders`
+          `/reviews/sellers/${sellerId}/delivered-orders`,
         );
         if (cancelled) return;
         setOrders(response.data || []);
@@ -33,7 +39,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
       } catch (err) {
         if (!cancelled) {
           setError(
-            err.response?.data?.message || "Unable to load delivered orders"
+            err.response?.data?.message || "Unable to load delivered orders",
           );
         }
       } finally {
@@ -61,7 +67,7 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
       setError("");
       const response = await apiClient.post(
         `/reviews/sellers/${sellerId}/feedback`,
-        { orderId, rating, comment }
+        { orderId, rating, comment },
       );
       onCreated?.(response.data);
       onClose?.();
@@ -101,23 +107,45 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
         {(storeName || storeLogo) && (
           <div className="flex items-center gap-3 p-3 mb-4 bg-gray-50 rounded-lg border border-gray-200">
             {storeLogo ? (
-              <img src={storeLogo} alt={storeName || "Store"} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+              <img
+                src={storeLogo}
+                alt={storeName || "Store"}
+                className="w-12 h-12 rounded-full object-cover border border-gray-200"
+              />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">Logo</div>
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                Logo
+              </div>
             )}
             <div>
               <div className="text-xs text-gray-500">Selling from</div>
-              <div className="font-semibold text-gray-900">{storeName || "Store"}</div>
+              <div className="font-semibold text-gray-900">
+                {storeName || "Store"}
+              </div>
             </div>
           </div>
         )}
 
-        <label className="block text-sm font-medium mb-2">How was your transaction?</label>
+        <label className="block text-sm font-medium mb-2">
+          How was your transaction?
+        </label>
         <div className="flex gap-4 mb-4">
           {[
-            { value: "positive", label: "Positive", color: "text-green-600 border-green-500 bg-green-50" },
-            { value: "neutral", label: "Neutral", color: "text-gray-600 border-gray-500 bg-gray-50" },
-            { value: "negative", label: "Negative", color: "text-red-600 border-red-500 bg-red-50" }
+            {
+              value: "positive",
+              label: "Positive",
+              color: "text-green-600 border-green-500 bg-green-50",
+            },
+            {
+              value: "neutral",
+              label: "Neutral",
+              color: "text-gray-600 border-gray-500 bg-gray-50",
+            },
+            {
+              value: "negative",
+              label: "Negative",
+              color: "text-red-600 border-red-500 bg-red-50",
+            },
           ].map((item) => (
             <label
               key={item.value}
@@ -136,7 +164,11 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
                 className="sr-only"
               />
               <span className="text-lg">
-                {item.value === "positive" ? "🟢" : item.value === "neutral" ? "🟡" : "🔴"}
+                {item.value === "positive"
+                  ? "🟢"
+                  : item.value === "neutral"
+                    ? "🟡"
+                    : "🔴"}
               </span>
               <span className="text-sm mt-1">{item.label}</span>
             </label>
@@ -148,65 +180,70 @@ export default function LeaveSellerFeedbackModal({ sellerId, storeName, storeLog
           <p className="text-sm text-gray-500 mb-4">Loading orders...</p>
         ) : orders.length === 0 ? (
           <p className="text-sm text-red-500 mb-4 font-semibold">
-            You have no delivered orders from this store that are eligible for feedback.
+            You have no delivered orders from this store that are eligible for
+            feedback.
           </p>
         ) : (
-          <select
-            value={orderId}
-            onChange={(event) => setOrderId(event.target.value)}
-            className="w-full border rounded px-3 py-2 mb-3 bg-white"
-            required
-          >
-            {orders.map((order) => (
-              <option key={order._id} value={order._id}>
-                {order.orderNumber || order._id} —{" "}
-                {order.deliveredDate
-                  ? new Date(order.deliveredDate).toLocaleDateString()
-                  : "Delivered"}
-              </option>
-            ))}
-          </select>
-
-          {/* Items in the selected order */}
-          {selectedOrder?.items?.length > 0 && (
-            <div className="mb-4 border rounded-lg bg-gray-50 p-3 max-h-40 overflow-y-auto">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Items in this order
+          <>
+            <select
+              value={orderId}
+              onChange={(event) => setOrderId(event.target.value)}
+              className="w-full border rounded px-3 py-2 mb-3 bg-white"
+              required
+            >
+              {orders.map((order) => (
+                <option key={order._id} value={order._id}>
+                  {order.orderNumber || order._id} —{" "}
+                  {order.deliveredDate
+                    ? new Date(order.deliveredDate).toLocaleDateString()
+                    : "Delivered"}
+                </option>
+              ))}
+            </select>
+            {/* Items in the selected order */}
+            {selectedOrder?.items?.length > 0 && (
+              <div className="mb-4 border rounded-lg bg-gray-50 p-3 max-h-40 overflow-y-auto">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Items in this order
+                </div>
+                <ul className="space-y-2">
+                  {selectedOrder.items.map((item) => (
+                    <li key={item._id} className="flex items-center gap-3">
+                      {item.image ? (
+                        <img
+                          src={
+                            typeof item.image === "string" &&
+                            item.image.startsWith("http")
+                              ? item.image
+                              : `http://localhost:5000${item.image}`
+                          }
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                          No image
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {item.title}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Qty: {item.quantity}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-2">
-                {selectedOrder.items.map((item) => (
-                  <li key={item._id} className="flex items-center gap-3">
-                    {item.image ? (
-                      <img
-                        src={
-                          typeof item.image === "string" && item.image.startsWith("http")
-                            ? item.image
-                            : `http://localhost:5000${item.image}`
-                        }
-                        alt={item.title}
-                        className="w-10 h-10 object-cover rounded border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                        No image
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-800 truncate">
-                        {item.title}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Qty: {item.quantity}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            )}
+          </>
         )}
 
-        <label className="block text-sm font-medium mb-1">Tell us more (comment)</label>
+        <label className="block text-sm font-medium mb-1">
+          Tell us more (comment)
+        </label>
         <textarea
           required
           value={comment}
