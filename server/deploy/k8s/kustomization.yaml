@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Gom nhóm toàn bộ manifests trong folder để apply 1 phát:
+#   kubectl apply -k server/deploy/k8s/
+
+namespace: sdn
+
+commonLabels:
+  app.kubernetes.io/part-of: sdn-project
+
+resources:
+  - 00-namespace.yaml
+  - 01-secret.yaml
+  - 02-pv-pvc-uploads.yaml
+  - 04-mongodb.yaml
+  - 05-backend.yaml
+  - 06-frontend.yaml
+  - 07-ingress.yaml
+  - 08-hpa-backend.yaml
+  - 09-hpa-frontend.yaml
+# 03-pvc-mongo-data.yaml: tham khảo, mặc định KHÔNG apply (StatefulSet tự tạo PVC).
+# Bỏ comment dòng dưới nếu muốn pre-create PVC tĩnh cho restore.
+#  - 03-pvc-mongo-data.yaml

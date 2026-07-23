@@ -1,0 +1,26 @@
+# Docker ignore file cho sdn-project
+# Tương thích với build context = repo root
+
+# Ignore general
+.git
+.gitignore
+.vscode
+.idea
+.claude
+docs
+README.md
+
+# Ignore backend node_modules & development logs
+server/node_modules
+server/logs
+server/*.log
+server/.env
+server/.env.*
+server/public/uploads/*
+server/uploads/*
+
+# Ignore frontend build files & dependencies
+ui/node_modules
+ui/build
+ui/.env
+ui/.env.*
