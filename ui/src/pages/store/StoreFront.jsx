@@ -5,12 +5,7 @@ import { BsSearch, BsHeart, BsHeartFill, BsShare, BsChevronDown } from "react-ic
 import MainLayout from "../../layout/MainLayout";
 import { useAuth } from "../../hooks/useAuth";
 import LeaveSellerFeedbackModal from "../../components/LeaveSellerFeedbackModal";
-
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-const resolveImageUrl = (img) => {
-  if (!img) return "";
-  return img.startsWith("http") ? img : `${API_BASE}${img}`;
-};
+import { resolveImageUrl } from "../../utils/image";
 
 export default function StoreFront() {
   const { slug } = useParams();

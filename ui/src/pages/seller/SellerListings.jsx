@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import apiClient from "../../services/apiClient";
-
-const resolveImageUrl = (img) => {
-  if (!img) return "";
-  return img.startsWith("http") ? img : `http://localhost:5000${img}`;
-};
+import { resolveImageUrl } from "../../utils/image";
 
 export default function SellerListings() {
   const [tab, setTab] = useState("products");
