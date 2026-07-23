@@ -22,6 +22,7 @@ resources:
   - 07-ingress.yaml
   - 08-hpa-backend.yaml
   - 09-hpa-frontend.yaml
+  - 11-seed-job.yaml
 # 03-pvc-mongo-data.yaml: tham khảo, mặc định KHÔNG apply (StatefulSet tự tạo PVC).
 # Bỏ comment dòng dưới nếu muốn pre-create PVC tĩnh cho restore.
 #  - 03-pvc-mongo-data.yaml

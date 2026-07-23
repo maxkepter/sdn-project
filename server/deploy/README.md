@@ -46,6 +46,7 @@
 - **Docker Desktop** (bật Kubernetes) hoặc **Minikube** hoặc cluster thật (EKS/GKE/AKS/...)
 - **kubectl** đã cấu hình cluster context
 - **ingress-nginx** đã cài đặt:
+
   ```bash
   # Minikube
   minikube addons enable ingress
@@ -53,7 +54,9 @@
   # Docker Desktop / cluster tổng quát
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/cloud/deploy.yaml
   ```
+
 - **metrics-server** (cần thiết cho HPA):
+
   ```bash
   # Minikube
   minikube addons enable metrics-server
@@ -62,6 +65,7 @@
   helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
   helm install metrics-server metrics-server/metrics-server -n kube-system
   ```
+
 - **StorageClass hỗ trợ ReadWriteMany (RWX)** để chia sẻ uploads giữa các pod backend.
   Nếu cluster mặc định không có, cài **nfs-subdir-external-provisioner**:
   ```bash
@@ -84,6 +88,7 @@ IMAGE_TAG=2.0.0 REGISTRY=ghcr.io/myorg REACT_APP_API_URL=/api/v1 ./scripts/build
 ```
 
 Script sẽ:
+
 1. Build `sdn-backend:${IMAGE_TAG}` từ `server/deploy/docker/Dockerfile.backend`.
 2. Build `sdn-frontend:${IMAGE_TAG}` từ `server/deploy/docker/Dockerfile.frontend`.
 3. Nếu phát hiện Minikube đang chạy, tự động `minikube image load`.
@@ -103,6 +108,7 @@ echo -n 'mongodb://mongo-0.mongo-headless.sdn.svc.cluster.local:27017/sdn_db' | 
 Hoặc đơn giản hơn: sửa trực tiếp phần `stringData` (Kubernetes sẽ tự encode lúc apply).
 
 **Chuyển sang MongoDB Atlas**:
+
 ```yaml
 stringData:
   DATABASE_URL: "mongodb+srv://user:password@cluster0.mongodb.net/sdn_db"
@@ -119,12 +125,14 @@ stringData:
 ```
 
 Script sẽ tự động:
+
 1. Áp dụng `kustomization.yaml`.
 2. Đợi MongoDB StatefulSet sẵn sàng.
 3. Đợi Backend/Frontend Deployments sẵn sàng.
 4. In ra trạng thái cuối cùng.
 
 Kiểm tra thủ công:
+
 ```bash
 kubectl -n sdn get all,pvc,ingress
 ```
@@ -144,6 +152,7 @@ Nếu cluster không có external LB (Minikube/K3s), dùng port-forward:
 ```
 
 Sau đó truy cập:
+
 - Frontend: http://sdn.local:8080/
 - API: http://sdn.local:8080/api/v1/categories
 - Health: http://sdn.local:8080/health
@@ -158,6 +167,7 @@ Sau đó truy cập:
 ```
 
 Script sẽ:
+
 1. **Ưu tiên**: chạy `npm run seed` bên trong backend pod (đã có `node_modules`).
 2. **Fallback**: nếu không có backend pod running, port-forward MongoDB và chạy seed cục bộ.
 
@@ -185,19 +195,23 @@ kubectl -n sdn get hpa -w
 ## 9. Troubleshooting
 
 ### Backend pods ở trạng thái `Pending`
+
 - Kiểm tra PVC `sdn-uploads-pvc`: `kubectl -n sdn get pvc`.
 - Nếu PVC `Pending` vì không tìm thấy StorageClass, đổi `storageClassName` trong `02-pv-pvc-uploads.yaml` thành tên có sẵn trong cluster (vd `longhorn`, `standard`, `hostpath`).
 - Nếu cluster không hỗ trợ RWX, **dự phòng**: scale backend xuống 1 replica và đổi accessMode sang `ReadWriteOnce` trong PVC.
 
 ### Backend pods `CrashLoopBackOff`
+
 - Xem log: `kubectl -n sdn logs deploy/sdn-backend --tail=100`.
 - Kiểm tra secret: `kubectl -n sdn get secret sdn-secrets -o yaml`.
 - MongoDB chưa sẵn sàng: `kubectl -n sdn get pods -l app=mongo`.
 
 ### HPA hiển thị `<unknown>/70%`
+
 - metrics-server chưa được cài hoặc chưa warm-up. Đợi ~1-2 phút.
 
 ### Ingress không route đúng
+
 - `kubectl -n sdn describe ingress sdn-ingress`.
 - Kiểm tra host header: request phải gửi `Host: sdn.local` (xem `/etc/hosts`).
 
