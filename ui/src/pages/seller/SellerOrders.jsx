@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/apiClient';
+import { resolveImageUrl } from '../../utils/image';
 
 const format = (date, fmt) => {
   const d = new Date(date);
@@ -448,8 +449,8 @@ const SellerOrders = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-3">
-                          <img src={order.listingImage || 'https://via.placeholder.com/50'} alt={order.listingTitle}
-                            className="w-12 h-12 object-cover rounded" onError={(e) => { e.target.src = 'https://via.placeholder.com/50'; }} />
+                          <img src={resolveImageUrl(order.listingImage) || 'https://placehold.co/50x50?text=No+Image'} alt={order.listingTitle}
+                            className="w-12 h-12 object-cover rounded" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/50x50?text=No+Image'; }} />
                           <div className="flex-1">
                             <button onClick={() => openOrderDetail(order)} className="text-sm text-blue-600 hover:underline font-medium block mb-1 text-left">
                               {order.orderNumber || `#${order._id.slice(-8).toUpperCase()}`}

@@ -3,6 +3,24 @@ const path = require("path");
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
+// Rate-limit window is expressed in minutes (matches the ConfigMap
+// `RATE_LIMIT_WINDOW_MIN` and `RATE_LIMIT_MAX` keys declared in
+// server/deploy/k8s/05-backend-config.yaml). We accept either the
+// minute-based or the legacy millisecond-based env var so local .env
+// files can still override at sub-minute granularity if needed.
+const rateLimitWindowMin = parseInt(process.env.RATE_LIMIT_WINDOW_MIN, 10);
+const rateLimitWindowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10);
+const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX, 10);
+
+let rateLimitWindowMsResolved;
+if (Number.isFinite(rateLimitWindowMs) && rateLimitWindowMs > 0) {
+  rateLimitWindowMsResolved = rateLimitWindowMs;
+} else if (Number.isFinite(rateLimitWindowMin) && rateLimitWindowMin > 0) {
+  rateLimitWindowMsResolved = rateLimitWindowMin * 60 * 1000;
+} else {
+  rateLimitWindowMsResolved = 15 * 60 * 1000;
+}
+
 module.exports = {
   port: process.env.PORT || 5000,
   env: process.env.NODE_ENV || "development",
@@ -10,8 +28,8 @@ module.exports = {
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET || "fallback_secret",
   rateLimit: {
-    windowMs:
-      parseInt(process.env.RATE_LIMIT_WINDOW_MS) * 60 * 100 || 15 * 60 * 1000,
-    max: parseInt(process.env.RATE_LIMIT_MAX) || 500,
+    windowMs: rateLimitWindowMsResolved,
+    max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 500,
   },
 };
+

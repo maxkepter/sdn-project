@@ -12,13 +12,17 @@ commonLabels:
 resources:
   - 00-namespace.yaml
   - 01-secret.yaml
-  - 02-pv-pvc-uploads.yaml
-  - 04-mongodb.yaml
-  - 05-backend.yaml
-  - 06-frontend.yaml
+  - 04-mongodb-service.yaml
+  - 04-mongodb-statefulset.yaml
+  - 05-backend-config.yaml
+  - 05-backend-deployment.yaml
+  - 05-backend-service.yaml
+  - 06-frontend-deployment.yaml
+  - 06-frontend-service.yaml
   - 07-ingress.yaml
   - 08-hpa-backend.yaml
   - 09-hpa-frontend.yaml
+  - 11-seed-job.yaml
 # 03-pvc-mongo-data.yaml: tham khảo, mặc định KHÔNG apply (StatefulSet tự tạo PVC).
 # Bỏ comment dòng dưới nếu muốn pre-create PVC tĩnh cho restore.
 #  - 03-pvc-mongo-data.yaml

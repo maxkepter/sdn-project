@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../services/apiClient";
+import { resolveImageUrl } from "../utils/image";
 
 const renderStars = (rating) => (
   <span>
@@ -213,11 +214,7 @@ export default function ProductReviews({ productId }) {
                   {review.photos.map((photo, idx) => (
                     <img
                       key={idx}
-                      src={
-                        typeof photo === "string" && photo.startsWith("http")
-                          ? photo
-                          : `http://localhost:5000${photo}`
-                      }
+                      src={resolveImageUrl(photo) || "https://placehold.co/80x80?text=No+Image"}
                       alt={`Review photo ${idx + 1}`}
                       className="w-20 h-20 object-cover rounded border border-gray-200"
                     />

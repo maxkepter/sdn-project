@@ -1,9 +1,10 @@
 # Ingress-NGINX routing rules — Nginx hoạt động như Load Balancer L7
 #
-# Routes:
-#   http://sdn.local/api/*     -> backend (sdn-backend:80)
-#   http://sdn.local/uploads/* -> backend (serve static uploads từ PVC)
-#   http://sdn.local/*         -> frontend (sdn-frontend:80)
+# Routes (truy cập qua http://localhost:8080 sau khi port-forward):
+#   /api/*     -> backend (sdn-backend:80)
+#   /uploads/* -> backend (serve static uploads từ PVC)
+#   /health    -> backend (Health Check JSON)
+#   /*         -> frontend (sdn-frontend:80)
 #
 # Lưu ý: prefix routing không rewrite path -> /api/v1/auth/login vẫn giữ nguyên khi tới backend,
 # khớp với `app.use("/api/v1", routes)` trong server/src/app.js.
@@ -17,23 +18,25 @@ metadata:
     app.kubernetes.io/name: sdn-project
     app.kubernetes.io/component: ingress
   annotations:
+    # Timeout & body size (cho phép upload file ảnh/video)
     nginx.ingress.kubernetes.io/proxy-body-size: "20m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     # Tắt SSL redirect cho local dev (không có TLS cert)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Bật CORS cho phép frontend SPA cross-origin
+    # Bật CORS cho phép frontend gọi từ http://localhost:8080
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
-    # Load balancing
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:8080"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization,Content-Type,X-Requested-With"
+    # Load balancing algorithm
     nginx.ingress.kubernetes.io/load-balance: "least_conn"
 spec:
   ingressClassName: nginx
   rules:
-    - host: sdn.local
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix
@@ -44,6 +47,13 @@ spec:
                   number: 80
           - path: /uploads
             pathType: Prefix
+            backend:
+              service:
+                name: sdn-backend
+                port:
+                  number: 80
+          - path: /health
+            pathType: Exact
             backend:
               service:
                 name: sdn-backend

@@ -8,6 +8,7 @@ import ConditionSelector from "../components/listing/ConditionSelector";
 import PricingSection from "../components/listing/PricingSection";
 import ShippingSection from "../components/listing/ShippingSection";
 import ItemSpecifics from "../components/listing/ItemSpecifics";
+import apiClient from "../services/apiClient";
 
 export default function ListingPage() {
   const [photos, setPhotos] = useState([]);
@@ -49,19 +50,14 @@ export default function ListingPage() {
       formData.append("location", shipping.location);
       formData.append("itemSpecifics", JSON.stringify(specifics));
 
-      const res = await fetch("http://localhost:5000/api/v1/listings", {
-        method: "POST",
-        body: formData,
-      });
+      // Use the shared apiClient so multipart uploads inherit the
+      // same baseURL handling as the rest of the app. axios will set
+      // the correct multipart Content-Type and never tries to JSON-
+      // serialize the FormData body.
+      const result = await apiClient.post("/listings", formData);
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Failed to create listing");
-      }
-
-      const result = await res.json();
       alert("Listing created successfully!");
-      console.log("Created listing:", result);
+      console.log("Created listing:", result.data);
 
       setPhotos([]);
       setTitle("");
