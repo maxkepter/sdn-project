@@ -1,0 +1,27 @@
+# PVC cho dữ liệu MongoDB (StatefulSet tạo claim tương ứng với volumeClaimTemplates).
+# File này chỉ định nghĩa PVC tĩnh nếu muốn pre-provision volume trước khi apply StatefulSet.
+# Trong triển khai mặc định, StatefulSet ở 04-mongodb.yaml sẽ tự tạo PVC qua volumeClaimTemplates,
+# nên file này chủ yếu mang tính tham khảo / dùng cho migration dữ liệu.
+#
+# Nếu muốn pre-create PVC (ví dụ restore từ snapshot), đổi tên PVC thành "data-mongo-0"
+# và set storageClassName khớp với cluster của bạn.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-data-mongo-0
+  namespace: sdn
+  labels:
+    app.kubernetes.io/name: sdn-project
+    app.kubernetes.io/component: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # Đổi theo StorageClass mặc định của cluster
+  # Docker Desktop: "hostpath"
+  # Minikube: "standard"
+  # EKS: "gp2"
+  # GKE: "standard"
+  storageClassName: standard

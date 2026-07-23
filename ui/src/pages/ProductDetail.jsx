@@ -66,18 +66,18 @@ export default function ProductDetail() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
                 >
-                  Leave a Review
+                  Write a Product Review
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled
-                  title="Login required to leave a review"
+                  title="Login required to write a product review"
                   className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
                 >
-                  Login to leave a review
+                  Login to write a product review
                 </button>
               )}
             </div>
@@ -89,6 +89,8 @@ export default function ProductDetail() {
         {modalOpen && user && (
           <LeaveReviewModal
             productId={id}
+            productName={product.title || product.name}
+            productImage={product.images?.[0] || product.image}
             onClose={() => setModalOpen(false)}
             onCreated={() => {
               setModalOpen(false);

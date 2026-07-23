@@ -1,0 +1,131 @@
+# Backend Express Deployment + ClusterIP Service + ConfigMap
+
+# ---- ConfigMap --------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sdn-backend-config
+  namespace: sdn
+  labels:
+    app.kubernetes.io/name: sdn-project
+    app.kubernetes.io/component: backend
+data:
+  NODE_ENV: "production"
+  PORT: "5000"
+  UPLOAD_DIR: "/data/uploads"
+  # Hostname khớp với Ingress rule trong 07-ingress.yaml — CORS backend sẽ whitelist domain này
+  CLIENT_URL: "http://sdn.local"
+  # Rate limiting
+  RATE_LIMIT_WINDOW_MIN: "15"
+  RATE_LIMIT_MAX: "500"
+
+---
+# ---- Deployment -------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdn-backend
+  namespace: sdn
+  labels:
+    app.kubernetes.io/name: sdn-project
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sdn-backend
+  template:
+    metadata:
+      labels:
+        app: sdn-backend
+        app.kubernetes.io/name: sdn-project
+        app.kubernetes.io/component: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: sdn-backend
+          image: sdn-backend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: sdn-backend-config
+            - secretRef:
+                name: sdn-secrets
+          volumeMounts:
+            - name: uploads
+              mountPath: /data/uploads
+            # readOnlyRootFilesystem yêu cầu emptyDir cho /tmp (multer tạm thời)
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: sdn-uploads-pvc
+        - name: tmp
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: sdn-backend
+
+---
+# ---- Service ----------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdn-backend
+  namespace: sdn
+  labels:
+    app.kubernetes.io/name: sdn-project
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: sdn-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP

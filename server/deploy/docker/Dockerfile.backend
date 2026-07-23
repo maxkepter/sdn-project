@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1.6
+# =============================================================================
+# Dockerfile.backend — Express 5 backend cho sdn-project
+# Build context: thư mục repo root (a:\SE\project\sdn\sdn-project\)
+# Build command:
+#   docker build \
+#     -f server/deploy/docker/Dockerfile.backend \
+#     -t sdn-backend:1.0.0 .
+# =============================================================================
+
+# ---- Stage 1: deps ----------------------------------------------------------
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+# Copy package.json gốc của server để giữ nguyên dependency list
+COPY server/package.json server/package-lock.json* ./
+
+# Ghi đè bằng bản runtime sạch (đã bỏ workspace link "sdn-project-workspace")
+# vì link file:../.claude/worktrees/... không tồn tại ngoài worktree gốc.
+COPY server/deploy/docker/package.runtime.json ./package.json
+
+RUN npm install --omit=dev --no-audit --no-fund
+
+# ---- Stage 2: runtime -------------------------------------------------------
+FROM node:20-alpine AS runtime
+ENV NODE_ENV=production \
+    PORT=5000 \
+    UPLOAD_DIR=/data/uploads
+WORKDIR /app
+
+# Tạo user non-root và thư mục upload (sẽ được mount PVC vào /data/uploads)
+RUN addgroup -S app && adduser -S app -G app \
+ && mkdir -p /data/uploads \
+ && chown -R app:app /data
+
+# Copy node_modules từ stage deps
+COPY --from=deps --chown=app:app /app/node_modules ./node_modules
+
+# Copy toàn bộ source backend
+COPY --chown=app:app server ./
+
+USER app
+EXPOSE 5000
+
+# Healthcheck dùng endpoint /health có sẵn trong app.js (server/src/app.js:55)
+HEALTHCHECK --interval=20s --timeout=3s --retries=3 \
+  CMD wget -qO- http://localhost:5000/health || exit 1
+
+CMD ["node", "src/server.js"]

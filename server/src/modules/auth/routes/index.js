@@ -8,6 +8,7 @@ const publicRoutes = require("../../public/routes/publicRoutes");
 const orderRoutes = require("../../order/routes/orderRoutes");
 const reportRoutes = require("../../report/routes/reportRoutes");
 const disputeRoutes = require("../../dispute/routes/disputeRoutes");
+const reviewRoutes = require("../../reviews/routes/reviewRoutes");
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use("/categories", publicRoutes);
 router.use("/orders", orderRoutes);
 router.use("/reports", reportRoutes);
 router.use("/disputes", disputeRoutes);
+router.use("/reviews", reviewRoutes);
 
 module.exports = router;
