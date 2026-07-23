@@ -192,7 +192,82 @@ kubectl -n sdn get hpa -w
 
 ---
 
-## 9. Troubleshooting
+## 9. Kiểm tra Load Balancing (Ingress `least_conn`)
+
+Mục đích: xác nhận ingress-NGINX thực sự phân phối request đều giữa các pod backend,
+không dồn hết vào một replica.
+
+### Bước 1 — Bật header/field `hostname` ở `/health`
+
+`/health` đã được bổ sung trường `hostname` trong body JSON và response header
+`X-Backend-Instance` (xem `server/src/app.js`). Sau khi sửa, cần rebuild + push
++ rollout lại backend:
+
+```bash
+REGISTRY=localhost:5001 IMAGE_TAG=1.0.0 ./scripts/build-images.sh
+docker push localhost:5001/sdn-backend:1.0.0
+kubectl -n sdn rollout restart deployment/sdn-backend
+kubectl -n sdn rollout status   deployment/sdn-backend --timeout=120s
+```
+
+Kiểm tra nhanh:
+
+```bash
+curl -sS -i http://localhost:8080/health | head
+# -> 200 OK
+# -> X-Backend-Instance: sdn-backend-xxxx-yyyy
+# -> {"status":"OK","timestamp":"...","hostname":"sdn-backend-xxxx-yyyy"}
+```
+
+### Bước 2 — Chạy load test
+
+`test-load-balancer.js` là script Node thuần (built-ins only), nằm trong
+`server/deploy/scripts/`. Mặc định sẽ gọi
+`http://localhost:8080/api/v1/categories/products` — endpoint public mà UI
+đang dùng — qua ingress đã port-forward.
+
+```bash
+# Đảm bảo port-forward ingress đang chạy ở terminal khác
+./scripts/port-forward-ingress.sh 8080
+
+# Mặc định: 10 giây, 10 worker song song, fire-and-forget
+node server/deploy/scripts/test-load-balancer.js
+
+# Tùy biến thời gian chạy, concurrency, RPS
+node server/deploy/scripts/test-load-balancer.js --duration 30 --concurrency 20 --rps 50
+
+# Test endpoint khác (ví dụ /health)
+node server/deploy/scripts/test-load-balancer.js --path /health --duration 5
+```
+
+Output cuối sẽ có:
+- Bảng latency tổng (min / p50 / p95 / p99 / max / mean).
+- Bảng per-pod (hostname, reqs, %, errors, p50, p95).
+- ASCII bar chart phân bố request theo từng pod.
+- Top 5 request chậm nhất.
+- Mục **VERDICT** cuối cùng:
+  - `OK` nếu request được phân tán >= 2 pod.
+  - `WARN` nếu tất cả request dồn về 1 pod (ingress không load balancing) hoặc
+    không nhận được header `X-Backend-Instance` (URL sai / backend không reach được).
+
+### Bước 3 — Quan sát HPA kết hợp
+
+Trong khi load test chạy, mở terminal khác:
+
+```bash
+kubectl -n sdn get hpa -w
+```
+
+Với CPU request 200m / limit 1000m và threshold 70%, concurrency 20 × 30s
+thường đủ đẩy HPA scale từ 3 lên 4–6 replicas.
+
+> ⚠️ Lưu ý: backend có rate-limit 500 req / 15 phút / IP. Cấu hình mặc định
+> của script (10s × 10 workers) an toàn. Nếu tăng `--rps` lên cao và chạy
+> lâu, có thể gặp HTTP 429 trong báo cáo.
+
+---
+
+## 10. Troubleshooting
 
 ### Backend pods ở trạng thái `Pending`
 
