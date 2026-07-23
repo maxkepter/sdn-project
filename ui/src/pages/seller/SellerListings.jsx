@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import apiClient from "../../services/apiClient";
 
+const resolveImageUrl = (img) => {
+  if (!img) return "";
+  return img.startsWith("http") ? img : `http://localhost:5000${img}`;
+};
+
 export default function SellerListings() {
   const [tab, setTab] = useState("products");
 
@@ -113,7 +118,15 @@ function ProductsTab() {
                 <tr key={p._id} className="border-b hover:bg-gray-50">
                   <td className="p-3">
                     {p.images?.[0] ? (
-                      <img src={`http://localhost:5000${p.images[0]}`} alt="" className="w-12 h-12 object-cover rounded" />
+                      <img
+                        src={resolveImageUrl(p.images[0])}
+                        alt={p.title}
+                        className="w-12 h-12 object-cover rounded bg-gray-100"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "https://placehold.co/48x48?text=No+Image";
+                        }}
+                      />
                     ) : (
                       <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">No img</div>
                     )}
@@ -206,7 +219,15 @@ function InventoryTab() {
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       {inv.productId?.images?.[0] && (
-                        <img src={`http://localhost:5000${inv.productId.images[0]}`} alt="" className="w-8 h-8 object-cover rounded" />
+                        <img
+                          src={resolveImageUrl(inv.productId.images[0])}
+                          alt={inv.productId?.title || ""}
+                          className="w-8 h-8 object-cover rounded bg-gray-100"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "https://placehold.co/32x32?text=?";
+                          }}
+                        />
                       )}
                       <span className="truncate max-w-[180px]">{inv.productId?.title || "Unknown"}</span>
                     </div>
