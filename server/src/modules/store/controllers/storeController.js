@@ -89,6 +89,7 @@ exports.getPublicStore = async (req, res, next) => {
       success: true,
       store: {
         ...store.published.toObject(),
+        sellerId: store.sellerId,
         followersCount: store.followersCount,
         itemsSold: store.itemsSold,
         positiveFeedbackPercent: store.positiveFeedbackPercent

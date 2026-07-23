@@ -16,6 +16,11 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [aboutMe, setAboutMe] = useState("");
   const [activeTab, setActiveTab] = useState("About");
+  const [feedbackStats, setFeedbackStats] = useState(null);
+  const [feedbackList, setFeedbackList] = useState([]);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackTotalPages, setFeedbackTotalPages] = useState(1);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -25,11 +30,34 @@ export default function ProfilePage() {
       } catch (err) {
         console.error("Profile not found", err);
       } finally {
-        setLoading(false);
+        setLoading(false); // wait, let's look at the original code's variable. Original had: setLoading(false);
       }
     };
     fetchProfile();
   }, [username]);
+
+  useEffect(() => {
+    if (activeTab !== "Feedback" || !profile?._id) return;
+    const fetchFeedback = async () => {
+      setLoadingFeedback(true);
+      try {
+        const [statsRes, listRes] = await Promise.all([
+          apiClient.get(`/reviews/sellers/${profile._id}/feedback`),
+          apiClient.get(`/reviews/sellers/${profile._id}/feedback/list`, {
+            params: { page: feedbackPage, limit: 10 }
+          })
+        ]);
+        setFeedbackStats(statsRes.data);
+        setFeedbackList(listRes.data.feedbacks || []);
+        setFeedbackTotalPages(listRes.data.pagination?.totalPages || 1);
+      } catch (err) {
+        console.error("Failed to load profile feedback stats", err);
+      } finally {
+        setLoadingFeedback(false);
+      }
+    };
+    fetchFeedback();
+  }, [activeTab, profile?._id, feedbackPage]);
 
   if (loading) {
     return (
@@ -205,22 +233,108 @@ export default function ProfilePage() {
           {activeTab === "Feedback" && (
             <>
               <h2 className="text-xl font-bold mb-2">Feedback ratings</h2>
-              <p className="text-[13px] text-gray-500 mb-6">Last 12 months</p>
-              
-              <div className="flex items-center gap-16 text-[13px]">
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Positive</span>
-                  <span className="underline cursor-pointer">0</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Neutral</span>
-                  <span className="underline cursor-pointer">0</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-black">Negative</span>
-                  <span className="underline cursor-pointer">0</span>
-                </div>
-              </div>
+              <p className="text-[13px] text-gray-500 mb-6">Recent Statistics</p>
+
+              {loadingFeedback ? (
+                <p className="text-sm text-gray-500">Loading feedback ratings...</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-4 text-[13px] mb-8">
+                    <div className="flex flex-col gap-1 border rounded-lg p-3 bg-green-50 border-green-200">
+                      <span className="font-bold text-green-700">Positive</span>
+                      <span className="text-2xl font-bold text-green-700">
+                        {feedbackStats?.positiveCount || 0}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 border rounded-lg p-3 bg-yellow-50 border-yellow-200">
+                      <span className="font-bold text-yellow-700">Neutral</span>
+                      <span className="text-2xl font-bold text-yellow-700">
+                        {feedbackStats?.neutralCount || 0}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 border rounded-lg p-3 bg-red-50 border-red-200">
+                      <span className="font-bold text-red-700">Negative</span>
+                      <span className="text-2xl font-bold text-red-700">
+                        {feedbackStats?.negativeCount || 0}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 border rounded-lg p-3 bg-blue-50 border-blue-200">
+                      <span className="font-bold text-blue-700">Positive Rate</span>
+                      <span className="text-2xl font-bold text-blue-700">
+                        {feedbackStats?.positiveRate !== undefined ? `${feedbackStats.positiveRate}%` : "0%"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-lg font-bold mb-4">Recent feedback</h3>
+                  {feedbackList.length === 0 ? (
+                    <p className="text-sm text-gray-500">No feedback yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {feedbackList.map((fb) => {
+                        const isPositive = fb.rating === "positive";
+                        const isNeutral = fb.rating === "neutral";
+                        const badgeClass = isPositive
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : isNeutral
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : "bg-red-100 text-red-800 border-red-200";
+                        const buyerName =
+                          fb.buyerId?.firstName || fb.buyerId?.username
+                            ? `${fb.buyerId?.firstName || ""} ${fb.buyerId?.lastName || ""}`.trim() || fb.buyerId?.username
+                            : "Anonymous";
+                        const fbDate = fb.createdAt || fb.updatedAt;
+                        return (
+                          <div key={fb._id} className="border rounded-lg p-4">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}`}>
+                                {fb.rating}
+                              </span>
+                              <span className="font-semibold text-sm">{buyerName}</span>
+                              <span className="text-xs text-gray-500">
+                                {fbDate ? new Date(fbDate).toLocaleDateString() : ""}
+                              </span>
+                            </div>
+                            {fb.comment && (
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{fb.comment}</p>
+                            )}
+                            {fb.sellerResponse?.message && (
+                              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mt-2 rounded-r">
+                                <div className="text-xs font-semibold text-blue-900 mb-1">Seller Response</div>
+                                <p className="text-sm text-blue-800 whitespace-pre-wrap">{fb.sellerResponse.message}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {feedbackTotalPages > 1 && (
+                    <div className="flex justify-center items-center gap-3 mt-6 text-sm">
+                      <button
+                        type="button"
+                        disabled={feedbackPage === 1}
+                        onClick={() => setFeedbackPage((p) => Math.max(1, p - 1))}
+                        className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-gray-600">
+                        Page {feedbackPage} of {feedbackTotalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={feedbackPage === feedbackTotalPages}
+                        onClick={() => setFeedbackPage((p) => Math.min(feedbackTotalPages, p + 1))}
+                        className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>

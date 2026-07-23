@@ -14,6 +14,7 @@ module.exports = {
   Coupon: require("./Coupon"),
   Inventory: require("./Inventory"),
   Feedback: require("./Feedback"),
+  SellerFeedback: require("./SellerFeedback"),
   Dispute: require("./Dispute"),
   Store: require("./Store"),
 };

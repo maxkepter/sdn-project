@@ -5,12 +5,17 @@ import apiClient from "../../services/apiClient";
 export default function SellerOverview() {
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [feedbackStats, setFeedbackStats] = useState(null);
 
   useEffect(() => {
     apiClient.get("/orders/stats").then((r) => setStats(r.data)).catch(() => {});
     apiClient
       .get("/orders")
       .then((r) => setOrders(Array.isArray(r.data?.orders) ? r.data.orders : []))
+      .catch(() => {});
+    apiClient
+      .get("/reviews/seller/feedback/statistics")
+      .then((r) => setFeedbackStats(r.data))
       .catch(() => {});
   }, []);
 
@@ -38,7 +43,7 @@ export default function SellerOverview() {
         <StatCard
           label="Sales (31 days)"
           value={stats ? `$${stats.totalRevenue.toFixed(2)}` : "-"}
-          link="/seller/orders"
+          link="/seller/reports"
         />
         <StatCard
           label="Seller level forecast"
@@ -52,7 +57,7 @@ export default function SellerOverview() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <h3 className="text-base font-bold text-gray-800 mb-3">Tasks</h3>
           <ul className="space-y-2">
@@ -76,7 +81,10 @@ export default function SellerOverview() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="text-base font-bold text-gray-800 mb-3">Sales</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-gray-800">Sales</h3>
+            <Link to="/seller/reports" className="text-xs text-blue-600 hover:underline">See reports</Link>
+          </div>
           <SalesChart orders={orders} />
         </div>
 
@@ -105,6 +113,31 @@ export default function SellerOverview() {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-gray-800">Feedback</h3>
+            <Link to="/seller/feedback" className="text-xs text-blue-600 hover:underline">See details</Link>
+          </div>
+          <div className="flex flex-col gap-2 py-1 text-sm">
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-green-50 border border-green-200">
+              <span className="font-semibold text-green-700">Positive</span>
+              <span className="font-bold text-green-700">{feedbackStats?.positiveCount ?? 0}</span>
+            </div>
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-yellow-50 border border-yellow-200">
+              <span className="font-semibold text-yellow-700">Neutral</span>
+              <span className="font-bold text-yellow-700">{feedbackStats?.neutralCount ?? 0}</span>
+            </div>
+            <div className="flex justify-between items-center px-2 py-1 rounded bg-red-50 border border-red-200">
+              <span className="font-semibold text-red-700">Negative</span>
+              <span className="font-bold text-red-700">{feedbackStats?.negativeCount ?? 0}</span>
+            </div>
+            <div className="border-t pt-2 mt-1 flex justify-between items-center font-semibold">
+              <span>Positive Rate</span>
+              <span className="text-blue-600">{feedbackStats?.positiveRate != null ? `${feedbackStats.positiveRate}%` : "0%"}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -10,6 +10,9 @@ router.use(auth, sellerCheck);
 // GET /api/v1/disputes
 router.get("/", ctrl.getSellerDisputes);
 
+// GET /api/v1/disputes/:id
+router.get("/:id", ctrl.getDisputeById);
+
 // PATCH /api/v1/disputes/:id/resolve
 router.patch("/:id/resolve", ctrl.resolveDispute);
 
