@@ -20,9 +20,9 @@ metadata:
   annotations:
     # Timeout & body size (cho phép upload file ảnh/video)
     nginx.ingress.kubernetes.io/proxy-body-size: "20m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
     # Tắt SSL redirect cho local dev (không có TLS cert)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     # Bật CORS cho phép frontend gọi từ http://localhost:8080
@@ -31,8 +31,21 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:8080"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization,Content-Type,X-Requested-With"
-    # Load balancing algorithm
-    nginx.ingress.kubernetes.io/load-balance: "least_conn"
+    # Load balancing algorithm: round_robin để chia đều traffic cho cả pod cũ và pod mới.
+    # `least_conn` kết hợp với upstream keep-alive pool khiến 3 pod cũ "giữ chân"
+    # hầu hết request, còn pod mới scale lên chỉ nhận được 1-2 request.
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
+    # Đóng keep-alive sau N request để Nginx phải tái thiết lập TCP tới upstream,
+    # giúp thuật toán round_robin phân phối đều khi có pod mới Ready.
+    nginx.ingress.kubernetes.io/upstream-keepalive-requests: "100"
+    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "50"
+    # Retry upstream khác khi gặp lỗi mạng/5xx, giảm ảnh hưởng của single pod chậm.
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503 http_504"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "10"
+    # Health check chủ động của Ingress-NGINX (mặc định Ingress không tự gọi health).
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-url: "/health"
 spec:
   ingressClassName: nginx
   rules:

@@ -29,7 +29,9 @@ module.exports = {
   jwtSecret: process.env.JWT_SECRET || "fallback_secret",
   rateLimit: {
     windowMs: rateLimitWindowMsResolved,
-    max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 500,
+    // 0 / số âm → tắt rate-limit (dùng cho load-test hoặc khi muốn bypass).
+    // Không hợp lệ / undefined → fallback 500 như cũ.
+    max: Number.isFinite(rateLimitMax) ? rateLimitMax : 500,
   },
 };
 
