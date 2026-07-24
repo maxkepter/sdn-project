@@ -46,6 +46,7 @@
 - **Docker Desktop** (bật Kubernetes) hoặc **Minikube** hoặc cluster thật (EKS/GKE/AKS/...)
 - **kubectl** đã cấu hình cluster context
 - **ingress-nginx** đã cài đặt:
+
   ```bash
   # Minikube
   minikube addons enable ingress
@@ -53,7 +54,9 @@
   # Docker Desktop / cluster tổng quát
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/cloud/deploy.yaml
   ```
+
 - **metrics-server** (cần thiết cho HPA):
+
   ```bash
   # Minikube
   minikube addons enable metrics-server
@@ -62,6 +65,7 @@
   helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
   helm install metrics-server metrics-server/metrics-server -n kube-system
   ```
+
 - **StorageClass hỗ trợ ReadWriteMany (RWX)** để chia sẻ uploads giữa các pod backend.
   Nếu cluster mặc định không có, cài **nfs-subdir-external-provisioner**:
   ```bash
@@ -84,6 +88,7 @@ IMAGE_TAG=2.0.0 REGISTRY=ghcr.io/myorg REACT_APP_API_URL=/api/v1 ./scripts/build
 ```
 
 Script sẽ:
+
 1. Build `sdn-backend:${IMAGE_TAG}` từ `server/deploy/docker/Dockerfile.backend`.
 2. Build `sdn-frontend:${IMAGE_TAG}` từ `server/deploy/docker/Dockerfile.frontend`.
 3. Nếu phát hiện Minikube đang chạy, tự động `minikube image load`.
@@ -103,6 +108,7 @@ echo -n 'mongodb://mongo-0.mongo-headless.sdn.svc.cluster.local:27017/sdn_db' | 
 Hoặc đơn giản hơn: sửa trực tiếp phần `stringData` (Kubernetes sẽ tự encode lúc apply).
 
 **Chuyển sang MongoDB Atlas**:
+
 ```yaml
 stringData:
   DATABASE_URL: "mongodb+srv://user:password@cluster0.mongodb.net/sdn_db"
@@ -119,12 +125,14 @@ stringData:
 ```
 
 Script sẽ tự động:
+
 1. Áp dụng `kustomization.yaml`.
 2. Đợi MongoDB StatefulSet sẵn sàng.
 3. Đợi Backend/Frontend Deployments sẵn sàng.
 4. In ra trạng thái cuối cùng.
 
 Kiểm tra thủ công:
+
 ```bash
 kubectl -n sdn get all,pvc,ingress
 ```
@@ -144,6 +152,7 @@ Nếu cluster không có external LB (Minikube/K3s), dùng port-forward:
 ```
 
 Sau đó truy cập:
+
 - Frontend: http://sdn.local:8080/
 - API: http://sdn.local:8080/api/v1/categories
 - Health: http://sdn.local:8080/health
@@ -158,6 +167,7 @@ Sau đó truy cập:
 ```
 
 Script sẽ:
+
 1. **Ưu tiên**: chạy `npm run seed` bên trong backend pod (đã có `node_modules`).
 2. **Fallback**: nếu không có backend pod running, port-forward MongoDB và chạy seed cục bộ.
 
@@ -182,22 +192,101 @@ kubectl -n sdn get hpa -w
 
 ---
 
-## 9. Troubleshooting
+## 9. Kiểm tra Load Balancing (Ingress `least_conn`)
+
+Mục đích: xác nhận ingress-NGINX thực sự phân phối request đều giữa các pod backend,
+không dồn hết vào một replica.
+
+### Bước 1 — Bật header/field `hostname` ở `/health`
+
+`/health` đã được bổ sung trường `hostname` trong body JSON và response header
+`X-Backend-Instance` (xem `server/src/app.js`). Sau khi sửa, cần rebuild + push
++ rollout lại backend:
+
+```bash
+REGISTRY=localhost:5001 IMAGE_TAG=1.0.0 ./scripts/build-images.sh
+docker push localhost:5001/sdn-backend:1.0.0
+kubectl -n sdn rollout restart deployment/sdn-backend
+kubectl -n sdn rollout status   deployment/sdn-backend --timeout=120s
+```
+
+Kiểm tra nhanh:
+
+```bash
+curl -sS -i http://localhost:8080/health | head
+# -> 200 OK
+# -> X-Backend-Instance: sdn-backend-xxxx-yyyy
+# -> {"status":"OK","timestamp":"...","hostname":"sdn-backend-xxxx-yyyy"}
+```
+
+### Bước 2 — Chạy load test
+
+`test-load-balancer.js` là script Node thuần (built-ins only), nằm trong
+`server/deploy/scripts/`. Mặc định sẽ gọi
+`http://localhost:8080/api/v1/categories/products` — endpoint public mà UI
+đang dùng — qua ingress đã port-forward.
+
+```bash
+# Đảm bảo port-forward ingress đang chạy ở terminal khác
+./scripts/port-forward-ingress.sh 8080
+
+# Mặc định: 10 giây, 10 worker song song, fire-and-forget
+node server/deploy/scripts/test-load-balancer.js
+
+# Tùy biến thời gian chạy, concurrency, RPS
+node server/deploy/scripts/test-load-balancer.js --duration 30 --concurrency 20 --rps 50
+
+# Test endpoint khác (ví dụ /health)
+node server/deploy/scripts/test-load-balancer.js --path /health --duration 5
+```
+
+Output cuối sẽ có:
+- Bảng latency tổng (min / p50 / p95 / p99 / max / mean).
+- Bảng per-pod (hostname, reqs, %, errors, p50, p95).
+- ASCII bar chart phân bố request theo từng pod.
+- Top 5 request chậm nhất.
+- Mục **VERDICT** cuối cùng:
+  - `OK` nếu request được phân tán >= 2 pod.
+  - `WARN` nếu tất cả request dồn về 1 pod (ingress không load balancing) hoặc
+    không nhận được header `X-Backend-Instance` (URL sai / backend không reach được).
+
+### Bước 3 — Quan sát HPA kết hợp
+
+Trong khi load test chạy, mở terminal khác:
+
+```bash
+kubectl -n sdn get hpa -w
+```
+
+Với CPU request 200m / limit 1000m và threshold 70%, concurrency 20 × 30s
+thường đủ đẩy HPA scale từ 3 lên 4–6 replicas.
+
+> ⚠️ Lưu ý: backend có rate-limit 500 req / 15 phút / IP. Cấu hình mặc định
+> của script (10s × 10 workers) an toàn. Nếu tăng `--rps` lên cao và chạy
+> lâu, có thể gặp HTTP 429 trong báo cáo.
+
+---
+
+## 10. Troubleshooting
 
 ### Backend pods ở trạng thái `Pending`
+
 - Kiểm tra PVC `sdn-uploads-pvc`: `kubectl -n sdn get pvc`.
 - Nếu PVC `Pending` vì không tìm thấy StorageClass, đổi `storageClassName` trong `02-pv-pvc-uploads.yaml` thành tên có sẵn trong cluster (vd `longhorn`, `standard`, `hostpath`).
 - Nếu cluster không hỗ trợ RWX, **dự phòng**: scale backend xuống 1 replica và đổi accessMode sang `ReadWriteOnce` trong PVC.
 
 ### Backend pods `CrashLoopBackOff`
+
 - Xem log: `kubectl -n sdn logs deploy/sdn-backend --tail=100`.
 - Kiểm tra secret: `kubectl -n sdn get secret sdn-secrets -o yaml`.
 - MongoDB chưa sẵn sàng: `kubectl -n sdn get pods -l app=mongo`.
 
 ### HPA hiển thị `<unknown>/70%`
+
 - metrics-server chưa được cài hoặc chưa warm-up. Đợi ~1-2 phút.
 
 ### Ingress không route đúng
+
 - `kubectl -n sdn describe ingress sdn-ingress`.
 - Kiểm tra host header: request phải gửi `Host: sdn.local` (xem `/etc/hosts`).
 
@@ -258,3 +347,25 @@ Sẽ xoá toàn bộ resource trong namespace `sdn` (hỏi xác nhận).
 - **Logging**: cài EFK stack (Elasticsearch, Fluentd, Kibana) hoặc Loki.
 - **CI/CD**: đẩy images lên registry thật (Docker Hub, GHCR, ECR...) rồi dùng ArgoCD/Flux.
 - **Secrets**: chuyển sang External Secrets Operator + AWS Secrets Manager / Vault.
+
+---
+
+## 13. Công cụ CLI tương tác: K9s (Khuyến nghị)
+
+Nếu bạn muốn có một giao diện Terminal cực kỳ chuyên nghiệp và tương tác mạnh mẽ để điều khiển, debug cụm Kubernetes, hãy sử dụng **K9s**:
+
+1. **Cài đặt**:
+   - **Windows (Chocolatey)**: `choco install k9s`
+   - **Windows (Scoop)**: `scoop install k9s`
+   - **macOS (Homebrew)**: `brew install k9s`
+2. **Sử dụng**:
+   - Gõ lệnh: `k9s`
+   - Gõ `:pods` để xem danh sách pods. Dùng mũi tên lên xuống để di chuyển.
+   - Nhấn `d` để xem chi tiết pod (Describe).
+   - Nhấn `l` để xem log của pod đó thời gian thực.
+   - Nhấn `s` để shell trực tiếp vào pod (tương đương `kubectl exec -it`).
+   - Nhấn `Esc` để quay lại.
+   - Gõ `:hpa` để xem cấu hình tự động co giãn.
+   - Gõ `:ingress` để xem Load Balancer routing.
+   - Gõ `:pvc` để xem đĩa lưu trữ.
+   - Gõ `:namespace` và chọn `sdn` để lọc riêng các tài nguyên của hệ thống.

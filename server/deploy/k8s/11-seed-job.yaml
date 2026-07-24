@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sdn-seed
+  namespace: sdn
+  labels:
+    app.kubernetes.io/name: sdn-project
+    app.kubernetes.io/component: seed
+spec:
+  # Chạy 1 lần duy nhất, Job tự kết thúc sau khi pod hoàn tất
+  backoffLimit: 2          # Retry tối đa 2 lần nếu seed fail
+  activeDeadlineSeconds: 300   # Timeout 5 phút (vì seed có thể tải nhiều ảnh Unsplash)
+  ttlSecondsAfterFinished: 86400 # Tự xoá Job resource 24h sau khi hoàn tất (clean-up)
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sdn-project
+        app.kubernetes.io/component: seed
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: seed
+          # Dùng lại image backend (đã có node_modules + seed.js)
+          image: localhost:5001/sdn-backend:1.0.0
+          imagePullPolicy: IfNotPresent
+          # Truyền đầy đủ env giống backend pods để Mongoose connect DB đúng
+          envFrom:
+            - configMapRef:
+                name: sdn-backend-config
+            - secretRef:
+                name: sdn-secrets
+          command: ["node"]
+          args: ["src/seed.js"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

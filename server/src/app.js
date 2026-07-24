@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const os = require("os");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -25,6 +26,17 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // Cross-origin resource sharing
 app.use(cors({ origin: environment.clientUrl, credentials: true }));
+
+// Attach the backend pod's hostname to every response so that load
+// balancer tests can attribute each request to a specific pod without
+// having to target /health. The header is cheap and harmless for
+// non-load-testing clients; K8s probes only check HTTP 200 and ignore
+// extra headers.
+const BACKEND_INSTANCE = os.hostname();
+app.use((req, res, next) => {
+  res.set("X-Backend-Instance", BACKEND_INSTANCE);
+  next();
+});
 
 // HTTP request logger
 // app.use(environment.env === "development" ? morgan("dev") : morgan("combined"));
@@ -52,8 +64,18 @@ const listingsRoutes = require("./modules/listings/routes/listingsRoutes");
 app.use("/api/v1/listings", listingsRoutes);
 
 // Health check endpoint
+// Exposes pod hostname via JSON body and `X-Backend-Instance` response
+// header so load-balancer tests can attribute each request to a specific
+// pod. K8s startup/liveness/readiness probes only check HTTP 200 and are
+// unaffected by the extra header/field.
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date() });
+  const hostname = os.hostname();
+  res.set("X-Backend-Instance", hostname);
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date(),
+    hostname,
+  });
 });
 
 // 404 handler

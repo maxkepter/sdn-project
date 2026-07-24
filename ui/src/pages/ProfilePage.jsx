@@ -5,6 +5,7 @@ import MainHeader from "../layout/includes/MainHeader";
 import { AuthContext } from "../context/AuthContext";
 import { BsPencil, BsSearch } from "react-icons/bs";
 import apiClient from "../services/apiClient";
+import { resolveImageUrl } from "../utils/image";
 
 export default function ProfilePage() {
   const { username } = useParams();
@@ -103,11 +104,22 @@ export default function ProfilePage() {
             {/* Left: Avatar & Name */}
             <div className="flex flex-col">
               <div className="flex items-center gap-6">
-                {/* Avatar placeholder resembling two photos */}
-                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center relative shadow-sm border border-gray-300">
-                  <div className="absolute w-12 h-10 bg-white border-2 border-gray-300 -rotate-12 shadow-sm"></div>
-                  <div className="absolute w-12 h-10 bg-white border-2 border-gray-400 rotate-6 shadow-sm"></div>
-                  
+                {/* Avatar — shows real user avatar if available, otherwise a friendly placeholder */}
+                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center relative shadow-sm border border-gray-300 overflow-hidden">
+                  {profile.avatarURL ? (
+                    <img
+                      src={resolveImageUrl(profile.avatarURL)}
+                      alt={`${profile.username || "User"} avatar`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = "none"; }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="absolute w-12 h-10 bg-white border-2 border-gray-300 -rotate-12 shadow-sm"></div>
+                      <div className="absolute w-12 h-10 bg-white border-2 border-gray-400 rotate-6 shadow-sm"></div>
+                    </div>
+                  )}
+
                   {isEditing && (
                     <div className="absolute top-0 right-0 w-8 h-8 bg-white rounded-full border border-gray-300 flex items-center justify-center shadow-sm cursor-pointer hover:bg-gray-50">
                       <BsPencil size={14} />
