@@ -17,7 +17,7 @@ import axios from 'axios';
 // path so that opening the app via a local web server (or via the
 // port-forwarded ingress) Just Works.
 const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: process.env.REACT_APP_API_URL || '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
