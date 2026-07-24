@@ -34,8 +34,10 @@
  *   - The 500/15min rate limit on the backend applies per IP. Default
  *     settings (10s, c=10, unlimited RPS) stay well under that. If you
  *     push much harder, expect 429s to dominate the report.
- *   - Each request uses Connection: close so we don't pin ephemeral
- *     sockets on the client.
+ *   - Connections are kept alive (HTTP keep-alive) so the underlying TCP
+ *     socket is reused across requests. This avoids saturating the
+ *     single-threaded `kubectl port-forward` bottleneck when running the
+ *     test through a port-forwarded ingress-nginx.
  *   - The script does NOT parse the response body; it only reads status
  *     code and the `X-Backend-Instance` header.
  */
@@ -239,7 +241,7 @@ function doRequest(target, timeoutMs) {
         path: (target.pathname || "/") + (target.search || ""),
         headers: {
           "User-Agent": "sdn-loadtest/1.0",
-          Connection: "close",
+          Connection: "keep-alive",
           Accept: "application/json",
         },
       },

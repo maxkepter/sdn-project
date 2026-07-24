@@ -12,6 +12,11 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+// Tin tưởng 1 hop proxy (Ingress-NGINX) để req.ip là IP thật của client,
+// tránh việc tất cả request đều bị gán cùng một IP (IP của Ingress Pod),
+// dẫn đến rate-limit tính gộp sai và trả 429 trong load test.
+app.set("trust proxy", 1);
+
 const limiter = rateLimit({
   windowMs: environment.rateLimit.windowMs,
   max: environment.rateLimit.max,
@@ -50,8 +55,11 @@ app.use(express.urlencoded({ extended: true }));
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "../public/uploads");
 app.use("/uploads", express.static(uploadDir));
 
-// Rate limiting
-app.use(limiter);
+// Rate limiting — chỉ áp dụng khi RATE_LIMIT_MAX > 0.
+// Khi chạy load test, set RATE_LIMIT_MAX=0 trên K8s ConfigMap để tắt limiter.
+if (environment.rateLimit.max > 0) {
+  app.use(limiter);
+}
 
 // API routes
 app.use("/api/v1", routes);
